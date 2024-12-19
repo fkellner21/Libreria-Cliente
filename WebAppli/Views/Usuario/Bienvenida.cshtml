@@ -1,0 +1,9 @@
+﻿@{
+    string rol = Context.Session.GetString("rol");
+}
+
+@if(rol==null){
+    <h1 class="alert alert-danger">Debe loguearse para acceder a la informacion</h1>
+}else{
+    <h1 class="alert alert-success">Bienvenido</h1>
+}

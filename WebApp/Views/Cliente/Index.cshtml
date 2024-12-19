@@ -1,0 +1,105 @@
+﻿@model IEnumerable<LogicaDeNegocio.Dtos.ClienteDto>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1 class="text-center text-decoration-underline">Lista de clientes</h1>
+
+@if (@ViewBag.mensaje != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>@ViewBag.Mensaje</p>
+    </div>
+}
+<div class="container-fluid mt-3">
+<div class="row justify-content-around">
+    <div class="col-md-6">
+        <h4>Filtrar Clientes por Razon Social</h4>
+        <form action="/Cliente/FiltroXRazonSocial">
+            <div class="form-group">
+                <label for="filtro" class="control-label"></label>
+                <input for="filtro" name="filtro" value=@ViewBag.filtroRazonSocial class="form-control" />
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Filtrar" class="btn btn-primary mt-1" />
+            </div>
+        </form>
+    </div>
+        <div class="col-md-6">
+        <h4>Filtrar Clientes con pedidos mayores a: </h4>
+        <form action="/Cliente/FiltroXMonto">
+            <div class="form-group">
+                <label for="filtro" class="control-label"></label>
+                <input for="filtro" name="filtro" type="number" value=@ViewBag.filtroXMonto class="form-control" />
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Filtrar" class="btn btn-primary mt-1" />
+            </div>
+        </form>
+        </div>
+</div>
+</div>
+@if (@Model != null && Model.Count()==0)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>No existen clientes que cumplan con lo solicitado</p>
+    </div>
+}
+@if (Model != null)
+{
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Id)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.RazonSocial)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Rut)
+            </th>
+            <th>
+                Calle
+            </th>
+            <th>
+                Numero
+            </th>
+            <th>
+                Ciudad
+            </th>
+            <th>
+                Distancia
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.RazonSocial)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Rut)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DireccionCalle)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DireccionNumero)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DireccionCiudad)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.DireccionDistancia)
+            </td
+        </tr>
+        }
+    </tbody>
+</table>
+}

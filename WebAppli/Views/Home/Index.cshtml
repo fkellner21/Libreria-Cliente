@@ -1,0 +1,94 @@
+﻿@using LogicaDeNegocio.Entidades
+@model PageMovimientosViewModel
+
+@{
+    ViewData["Title"] = "Movimientos de Stock";
+}
+@if (@ViewBag.Mensaje != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>@ViewBag.Mensaje</p>
+    </div>
+}
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success" role="alert">
+        <p>@TempData["Mensaje"]</p>
+    </div>
+}
+
+<h1>Movimientos de Stock</h1>
+
+<p>
+    <a asp-action="Create">Nuevo movimiento</a>
+</p>
+@if (Model!=null && Model.Items.Count() > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Id
+                </th>
+                <th>
+                    Fecha
+                </th>
+                <th>
+                    Cantidad
+                </th>
+                <th>
+                    Articulo
+                </th>
+                <th>
+                    Movimiento
+                </th>
+                <th>
+                    Ejecutor
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+    @foreach (MovimientoDeStock item in Model.Items) 
+            {
+            <tr>
+                <td>
+                    @Html.DisplayFor(modelItem => item.Id)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.fecha)
+                </td>
+                <td>
+                    @Html.DisplayFor(modelItem => item.cantidad)
+                </td>
+                <td>
+                     @Html.DisplayFor(modelItem => item.articulo.Nombre)
+                </td>
+                <td>
+                     @Html.DisplayFor(modelItem => item.tipo.Nombre)
+                </td>
+                <td>
+                     @Html.DisplayFor(modelItem => item.ejecutor.Email)
+                </td>
+            </tr>
+            }
+        </tbody>
+    </table>
+
+    <div>
+        Página @(Model.PageNumber+1) de @(Model.TotalPages)
+    </div>
+    @if (Model.TotalPages > 0)
+    {
+        <div>
+            @if (Model.PageNumber > 0)
+            {
+                <a asp-action="Index" asp-route-pageNumber="@(Model.PageNumber - 1)">Anterior</a>
+            }
+
+            @if (Model.PageNumber < Model.TotalPages-1)
+            {
+                <a asp-action="Index" asp-route-pageNumber="@(Model.PageNumber + 1)">Siguiente</a>
+            }
+        </div>
+    }          
+}

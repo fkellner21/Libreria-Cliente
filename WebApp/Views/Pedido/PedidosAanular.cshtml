@@ -1,0 +1,85 @@
+﻿@model IEnumerable<LogicaDeNegocio.Dtos.PedidoDto>
+
+@{
+    ViewData["Title"] = "Pedidos anulables";
+}
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="PedidosAanular">
+            <div class="form-group">
+                <label for="fechaPedido" class="control-label">Fecha de realizado:</label>
+                <input for="fechaPedido" name="fechaPedido" type="date" class="form-control" />
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Ver" class="btn btn-primary" />
+            </div>
+
+        </form>
+    </div>
+</div>
+
+<h1 class="text-center text-decoration-underline">Lista de pedidos anulables</h1>
+@if (@ViewBag.mensaje != null)
+{
+    <div class="@ViewBag.color" role="alert">
+        <p>@ViewBag.mensaje</p>
+    </div>
+}
+@if (@Model != null && Model.Count()==0)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>No existen pedidos pendientes de entrega generados en esa fecha</p>
+    </div>
+}
+@if (Model != null)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Id
+                </th>
+                <th>
+                    Fecha de realizado
+                </th>
+                <th>
+                    Fecha de entrega
+                </th>
+                <th>
+                    Costo total
+                </th>
+                <th>
+                    Nombre del cliente
+                </th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.id)
+                    </td>
+                    <td>
+                        @item.fechaPedidoCorta()
+                    </td>
+                    <td>
+                        @item.fechaDeEntregaCorta()
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.precio)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.nombreCliente)
+                    </td>
+
+                    <td>
+                        <a asp-action="Anular" asp-route-id="@item.id" class="btn btn-danger">Anular</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+

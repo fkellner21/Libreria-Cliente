@@ -1,0 +1,79 @@
+﻿@model IEnumerable<LogicaDeNegocio.Entidades.Administrador>
+@{
+    string super = Context.Session.GetString("super");
+}
+@{
+    ViewData["Title"] = "Gestion de Administradores";
+}
+<header>
+
+</header>
+<h1>Gestion de Administradores</h1>
+@if (@ViewBag.Mensaje != null)
+{
+    <div class="alert alert-success" role="alert">
+        <p>@ViewBag.Mensaje</p>
+    </div>
+}
+
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Id)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.ModificaUsuario)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Email)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Password)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Nombre)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Apellido)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.ModificaUsuario)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Email)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Password)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Nombre)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Apellido)
+            </td>
+            <td>
+                    @if (super == "True")
+                    {
+                @Html.ActionLink("Editar", "AdminEdit", new {  id=item.Id }) 
+                    }
+                @Html.ActionLink("Borrar", "AdminDelete", new {  id=item.Id  })
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
+
+<p>
+    <a asp-action="AdminCreate">Crear nuevo Administrador</a>
+</p>

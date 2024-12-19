@@ -1,0 +1,111 @@
+﻿@using LogicaDeNegocio.Entidades
+@model PageMovimientosViewModel
+
+@{
+    ViewData["Title"] = "Movimientos de Stock Filtro 1";
+}
+@if (@ViewBag.Mensaje != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>@ViewBag.Mensaje</p>
+    </div>
+}
+@if (TempData["Mensaje"] != null)
+{
+    <div class="alert alert-success" role="alert">
+        <p>@TempData["Mensaje"]</p>
+    </div>
+}
+
+<h1>Movimientos de Stock segun articulo y tipo de movimiento</h1>
+
+<div class="container mt-5">
+    <form asp-action="FiltroXArtTipoPag" method="get" class="mt-4">
+        <div class="form-group">
+            <label for="IdArticulo">ID del Artículo</label>
+            <input type="number" value="@ViewBag.idArt" class="form-control" id="IdArticulo" name="IdArticulo" placeholder="Ingrese el ID del artículo" required>
+        </div>
+        <div class="form-group">
+            <label for="idTipoDeMovimiento">ID del Tipo de Movimiento</label>
+            <input type="number" value="@ViewBag.idTipo" class="form-control" id="idTipoDeMovimiento" name="idTipo" placeholder="Ingrese el ID del tipo de movimiento" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Enviar</button>
+    </form>
+</div>
+
+@if (Model != null && Model.Items.Count() > 0)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>
+                    Id
+                </th>
+                <th>
+                    Fecha
+                </th>
+                <th>
+                    Cantidad
+                </th>
+                <th>
+                    Articulo
+                </th>
+                <th>
+                    Id del Tipo de Movimiento
+                </th>
+                <th>
+                    Tipo de Movimiento
+                </th>
+                <th>
+                    Ejecutor
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (MovimientoDeStock item in Model.Items)
+            {
+                <tr>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.Id)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.fecha)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.cantidad)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.articulo.Nombre)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.tipo.Id)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.tipo.Nombre)
+                    </td>
+                    <td>
+                        @Html.DisplayFor(modelItem => item.ejecutor.Email)
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div>
+        Página @(Model.PageNumber + 1) de @(Model.TotalPages)
+    </div>
+    @if (Model.TotalPages > 0)
+    {
+        <div>
+            @if (Model.PageNumber > 0)
+            {
+                <a asp-action="FiltroXArtTipoPag" asp-route-idArticulo="@ViewBag.idArt" asp-route-idTipo="@ViewBag.idTipo" asp-route-pagina="@(Model.PageNumber - 1)">Anterior</a>
+            }
+
+            @if (Model.PageNumber < Model.TotalPages-1)
+            {
+                <a asp-action="FiltroXArtTipoPag" asp-route-idArticulo="@ViewBag.idArt" asp-route-idTipo="@ViewBag.idTipo" asp-route-pagina="@(Model.PageNumber + 1)">Siguiente</a>
+            }
+        </div>
+    }
+}

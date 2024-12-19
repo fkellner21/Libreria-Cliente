@@ -1,0 +1,48 @@
+﻿@model IEnumerable<LogicaDeNegocio.Entidades.TipoDeMovimiento>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Tipos de movimientos (no requerido en la letra del obligatorio)</h1>
+@if (@ViewBag.mensaje != null)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>@ViewBag.Mensaje</p>
+    </div>
+}
+@if (Model != null)
+{
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Id)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Nombre)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.aumentaStock)
+            </th>
+
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Nombre)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.aumentaStock)
+            </td>
+
+        </tr>
+}
+    </tbody>
+</table>
+}

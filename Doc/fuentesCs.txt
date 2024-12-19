@@ -1,0 +1,4500 @@
+﻿***********************************
+Archivo: IToken.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\IToken.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion
+{
+    public interface IToken
+    {
+        string Value { get; set; }
+    }
+}
+
+***********************************
+Archivo: ManejadorJwt.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApi\ManejadorJwt.cs
+***********************************
+
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using LogicaDeNegocio.Entidades;
+
+namespace WebApi
+{
+    public class ManejadorJwt
+    {
+        public static string GenerarToken(Usuario user)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            //clave secreta, generalmente se incluye en el archivo de configuración
+            //Debe ser un vector de bytes 
+
+            var clave = Encoding.ASCII.GetBytes("ZWRpw6fDo28gZW0gY29tcHV0YWRvcmE=");
+
+
+            //Se incluye un claim (privelegios) para el rol
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new Claim[]
+                {
+                    new Claim(ClaimTypes.Email, user.Email),
+                    new Claim(ClaimTypes.Role, user.Discriminator)
+                    
+                }),
+                Expires = DateTime.UtcNow.AddMonths(1),
+
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(clave),
+                // hmac-codigo de autentificacion sha256-cifrado base64-codificacion
+                SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+
+            return tokenHandler.WriteToken(token);
+        }
+
+    }
+}
+
+***********************************
+Archivo: WeatherForecast.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApi\WeatherForecast.cs
+***********************************
+namespace WebApi
+{
+    public class WeatherForecast
+    {
+        public DateOnly Date { get; set; }
+
+        public int TemperatureC { get; set; }
+
+        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+
+        public string? Summary { get; set; }
+    }
+}
+
+***********************************
+Archivo: Administrador.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\Administrador.cs
+***********************************
+using LogicaDeNegocio.Excepciones.Usuario;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class Administrador : Usuario
+    {
+        public bool ModificaUsuario { get; set; }
+        public Administrador() : base() { }
+        public Administrador(bool modificaUsuario, string Email, string Password, string Nombre, string Apellido) : base(Email, Password, Nombre, Apellido)
+        {
+            ModificaUsuario = modificaUsuario;
+        }
+
+        public override void Validar()
+        {
+            base.Validar();
+            if (ModificaUsuario == null)
+            {
+                throw new AdministradorInvalidoException();
+            }
+        }
+        public override void Update(Usuario obj)
+        {
+            base.Update(obj);
+            Administrador admin= obj as Administrador;
+            admin.Validar();
+            ModificaUsuario=admin.ModificaUsuario;
+        }
+    }
+}
+
+***********************************
+Archivo: Articulo.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\Articulo.cs
+***********************************
+using LogicaDeNegocio.Excepciones.Articulo;
+using LogicaDeNegocio.InterfacesDominio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class Articulo: IValidable, IEntity
+    {
+        public int Id {  get; set; }
+        public string Nombre {  get; set; }
+        public string Descripcion { get; set; }
+        public string Codigo { get; set; }
+        public decimal PrecioDeVenta { get; set; }
+        public Articulo() {}
+        public Articulo(string nombre, string descripcion, string codigo, decimal precioDeVenta)
+        {
+            Nombre = nombre;
+            Descripcion = descripcion;
+            Codigo = codigo;
+            PrecioDeVenta = precioDeVenta;
+
+        }
+
+        public virtual void Validar()
+        {
+            ValidarNombre();
+            ValidarDescripcion();
+            ValidarCodigo();
+            ValidarPrecioDeVenta();
+        }
+        public void ValidarNombre()
+        {
+            if (string.IsNullOrEmpty(Nombre) )
+            {
+                throw new NombreNoVacioException();
+            }
+        }
+        public void ValidarDescripcion()
+        {
+            if(Descripcion.Length < 5)
+            {
+                throw new DescripcionInvalidoException();
+            }
+        }
+        public void ValidarCodigo()
+        {
+            if(!EsNumeroDe13Digitos(Codigo))
+            {
+                throw new CodigoInvalidoException();
+            }
+        }
+        public void ValidarPrecioDeVenta()
+        {
+            if (PrecioDeVenta==null||PrecioDeVenta < 0)
+            {
+                throw new PrecioDeVentaInvalidoException();
+            }
+        }
+
+        static bool EsNumeroDe13Digitos(string numero)
+        {
+            string patron = @"^\d{13}$";
+            // Explicación del patrón:
+            // ^: inicio de la cadena
+            // \d{12}: exactamente 12 numeros
+            // $: final de la cadena
+
+            return Regex.IsMatch(numero, patron);
+        }
+        public void Update(Articulo obj)
+        {
+            obj.Validar();
+            Nombre=obj.Nombre;
+            Descripcion=obj.Descripcion;
+            Codigo=obj.Codigo;
+            PrecioDeVenta=obj.PrecioDeVenta;
+        }
+    }
+}
+
+***********************************
+Archivo: Encargado.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\Encargado.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class Encargado:Usuario
+    {
+        public Encargado():base() { }
+    }
+}
+
+***********************************
+Archivo: MovimientoDeStock.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\MovimientoDeStock.cs
+***********************************
+using LogicaDeNegocio.Excepciones.MovimientoDeStock;
+using LogicaDeNegocio.InterfacesDominio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class MovimientoDeStock : IValidable, IEntity
+    {
+        public int Id { get; set; }
+        public DateTime fecha { get; set; }
+        public Articulo articulo { get; set; }
+        public TipoDeMovimiento tipo { get; set; }
+        public Usuario ejecutor { get; set; }
+        public int cantidad { get; set; }
+
+
+        public MovimientoDeStock() 
+        {
+        fecha= DateTime.Now;
+        }
+        public MovimientoDeStock(int id, Articulo articulo, TipoDeMovimiento tipo, Usuario ejecutor, int cantidad)
+        {
+            Id = id;
+            fecha = DateTime.Now;
+            this.articulo = articulo;
+            this.tipo = tipo;
+            this.ejecutor = ejecutor;
+            this.cantidad = cantidad;
+        }
+        public void Validar()
+        {
+            if (fecha == null || articulo == null || tipo == null || ejecutor == null || cantidad <= 0)
+            {
+                throw new MovimientoDeStockInvalidoException();
+            }
+            if (cantidad > ParametrosGenerales.cantMaxPorMovimiento)
+            {
+                throw new CantidadInvalidaException();
+            }
+        }
+    }
+}
+
+***********************************
+Archivo: MovimientoDeStockDto.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\MovimientoDeStockDto.cs
+***********************************
+using LogicaDeNegocio.InterfacesDominio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class MovimientoDeStockDto
+    {
+        public int Id { get; set; }
+        public DateTime fecha { get; set; }
+        public int articuloId { get; set; }
+        public int tipoId { get; set; }
+        public string ejecutorEmail { get; set; }
+        public int cantidad { get; set; }
+    }
+}
+
+***********************************
+Archivo: ParametrosGenerales.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\ParametrosGenerales.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public static class ParametrosGenerales
+    {
+
+        public static int cantMaxPorMovimiento { get; set; } 
+        public static int pageSize { get; set; }
+
+    }
+}
+
+***********************************
+Archivo: Resultado.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\Resultado.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class Resultado
+    {
+        public int Anio { get; set; }
+        public int CantidadAnual { get; set; }
+        public List<ResultadoAnual> resultadoAnual { get; set; }
+    }
+}
+
+***********************************
+Archivo: ResultadoAnual.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\ResultadoAnual.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class ResultadoAnual
+    {
+        public string Movimiento { get; set; }
+        public int Cantidad { get; set; }
+    }
+}
+
+***********************************
+Archivo: TipoDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\TipoDeMovimiento.cs
+***********************************
+using LogicaDeNegocio.Excepciones.TipoDeMovimiento;
+using LogicaDeNegocio.InterfacesDominio;
+
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class TipoDeMovimiento:IValidable,IEntity
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set;}
+        public bool aumentaStock { get; set; }
+
+        public TipoDeMovimiento() { }
+        public TipoDeMovimiento(int id, string nombre, bool aumentaStock)
+        {
+            Id = id;
+            Nombre = nombre;
+            this.aumentaStock = aumentaStock;
+        }
+        public void Validar()
+        {
+            if (string.IsNullOrEmpty(Nombre))
+            {
+                throw new TipoDeMovimientoInvalidoException();
+            }
+        }
+
+        public void Update(TipoDeMovimiento obj)
+        {
+            obj.Validar();
+            Nombre = obj.Nombre;
+            aumentaStock = obj.aumentaStock;
+        }
+    }
+}
+
+***********************************
+Archivo: Usuario.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Entidades\Usuario.cs
+***********************************
+using LogicaDeNegocio.Excepciones.Usuario;
+using LogicaDeNegocio.InterfacesDominio;
+using System;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Entidades
+{
+    public class Usuario: IValidable, IEntity
+    {
+        public int Id { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string PasswordHash { get; set; }
+        public string Nombre { get; set; }
+        public string Apellido { get; set; }
+        public string Discriminator { get; set; }
+        public Usuario() { }
+        public Usuario(string email, string password, string nombre, string apellido)
+        {
+            Email = email;
+            Password = password;
+            Nombre = nombre;
+            Apellido = apellido;
+        }
+        public virtual void Validar()
+        {
+            ValidarEmail();
+            ValidarNombre();
+            ValidarApellido();
+            ValidarPassword();
+        }
+        public void ValidarEmail()
+        {
+            if (!EsCorreoElectronicoValido(Email))
+            {
+                throw new EmailInvalidoException();
+            }
+        }
+        static bool EsCorreoElectronicoValido(string correo)
+        {
+            string patron = @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+            // Explicación del patrón:
+            // ^: inicio de la cadena
+            // [a-zA-Z0-9._%+-]+: nombre de usuario; al menos un carácter alfanumérico, punto, guión bajo, porcentaje o signo más o menos
+            // @: símbolo de arroba
+            // [a-zA-Z0-9.-]+: nombre de dominio; al menos un carácter alfanumérico, punto o guion
+            // \.: un punto literal
+            // [a-zA-Z]{2,}: extensión de dominio; al menos dos caracteres alfabéticos
+            // $: final de la cadena
+
+            return Regex.IsMatch(correo, patron);
+        }
+
+        public void ValidarNombre()
+        {
+            if(!EsNombreApellidoValido(Nombre))
+            {
+                throw new NombreInvalidoException();
+            }
+        }
+        static bool EsNombreApellidoValido(string texto)
+        {
+            string patron = @"^[a-zA-Z]+(?:[' -][a-zA-Z]+)*$";
+            // Explicación del patrón:
+            // ^[a-zA-Z]+: Comienza con uno o más caracteres alfabéticos.
+            // (?:[' -][a-zA-Z]+)*: Seguido por cero o más grupos que contienen un apóstrofe,
+            // espacio o guión del medio, seguido de uno o más caracteres alfabéticos.
+            // $: Termina con la cadena.
+
+            return Regex.IsMatch(texto, patron);
+        }
+        public void ValidarApellido()
+        {
+            if (!EsNombreApellidoValido(Apellido))
+            {
+                throw new ApellidoInvalidoException();
+            }
+        }
+        public void ValidarPassword()
+        {
+            if (!EsPasswordValida(Password))
+            {
+                throw new PasswordInvalidoException();
+            }
+        }
+        static bool EsPasswordValida(string pass)
+        {
+            string patron = @"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[.,;!?])[A-Za-z\d.,;!?@_.\-]{6,}$";
+            // Explicación del patrón:
+            // ^: inicio de la cadena
+            // (?=.*[A-Z]): al menos una letra mayúscula
+            // (?=.*[a-z]): al menos una letra minúscula
+            // (?=.*\d): al menos un dígito
+            // (?=.*[.,;!?]): al menos un carácter de puntuación (punto, punto y coma, coma o signo de admiración de cierre)
+            // [A-Za-z\d.,;!?@_.\-]{6,}: caracteres alfabéticos, dígitos y caracteres de puntuación, con un largo mínimo de 6
+            // $: final de la cadena
+
+            return Regex.IsMatch(pass, patron);
+        }
+        public virtual void Update(Usuario obj)
+        {
+            obj.Validar();
+            Password = obj.Password;
+            PasswordHash = obj.PasswordHash;
+            Nombre = obj.Nombre;
+            Apellido = obj.Apellido;
+        }
+    }
+}
+
+***********************************
+Archivo: DominioExcpetion.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\DominioExcpetion.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones
+{
+    public class DominioExcpetion : Exception
+    {
+        public DominioExcpetion() { }
+        public DominioExcpetion(string message) : base(message) { }
+    }
+}
+
+***********************************
+Archivo: IAlta.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IAlta.cs
+***********************************
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IAlta<T>
+    {
+        void Ejecutar(T obj);
+    }
+}
+
+***********************************
+Archivo: ICantidadDosFiltros.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\ICantidadDosFiltros.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface ICantidadDosFiltros<T>
+    {
+        public int Ejecutar(int idArt, int idTipo);
+    }
+}
+
+***********************************
+Archivo: ICantidadPorFecha.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\ICantidadPorFecha.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface ICantidadPorFecha<T>
+    {
+        public int Ejecutar(DateTime desde, DateTime hasta);
+    }
+}
+
+***********************************
+Archivo: ICantidadTotal.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\ICantidadTotal.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface ICantidadTotal<T>
+    {
+        public int Ejecutar();
+    }
+}
+
+***********************************
+Archivo: IEditar.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IEditar.cs
+***********************************
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IEditar <T>
+    {
+        public void Ejecutar(int id, T obj);
+    }
+}
+
+***********************************
+Archivo: IEliminar.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IEliminar.cs
+***********************************
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IEliminar <T>
+    {
+        public void Ejecutar(int id);
+    }
+}
+
+***********************************
+Archivo: ILogin.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\ILogin.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface ILogin<Usuario>
+    {
+        public Usuario Ejecutar(string email, string password);
+    }
+}
+
+***********************************
+Archivo: IObtener.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtener.cs
+***********************************
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtener <T>
+    {
+        public T Ejecutar(int id);
+    }
+}
+
+***********************************
+Archivo: IObtenerDeString.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerDeString.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerDeString<T>
+    {
+        public T Ejecutar(string dato);
+    }
+}
+
+***********************************
+Archivo: IObtenerDosFiltros.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerDosFiltros.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerDosFiltros<T>
+    {
+        public IEnumerable<T> Ejecutar(int filtro, int segundo, int page);
+    }
+}
+
+***********************************
+Archivo: IObtenerFiltroInt.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerFiltroInt.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerFiltroInt<T>
+    {
+        public IEnumerable<T> Ejecutar(int filtro);
+
+    }
+}
+
+***********************************
+Archivo: IObtenerFiltroString.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerFiltroString.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerFiltroString<T> 
+    {
+        public IEnumerable<T> Ejecutar(string filtro);
+    }
+}
+
+***********************************
+Archivo: IObtenerPorFecha.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerPorFecha.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerPorFecha<T>
+    {
+        public IEnumerable<T> Ejecutar(DateTime desde, DateTime hasta, int page);
+    }
+}
+
+***********************************
+Archivo: IObtenerResumen.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerResumen.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerResumen
+    {
+        public IEnumerable<Resultado> Ejecutar();
+    }
+}
+
+***********************************
+Archivo: IObtenerTodos.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerTodos.cs
+***********************************
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerTodos <T>
+    {
+        public IEnumerable<T> Ejecutar();
+    }
+}
+
+***********************************
+Archivo: IObtenerTodosPaginado.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerTodosPaginado.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerTodosPaginado<T>
+    {
+        public IEnumerable<T> Ejecutar(int page);
+    }
+}
+
+***********************************
+Archivo: IObtenerToken.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\IObtenerToken.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+
+
+namespace LogicaDeNegocio.IntefacesServicios
+{
+    public interface IObtenerToken
+    {
+        public string Ejecutar(Usuario usu);
+    }
+}
+
+***********************************
+Archivo: ITokenService.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\IntefacesServicios\ITokenService.cs
+***********************************
+
+public interface ITokenService
+{
+    public string GetToken();
+}
+
+***********************************
+Archivo: IEntity.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\InterfacesDominio\IEntity.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.InterfacesDominio
+{
+    public interface IEntity
+    {
+        int Id { get; set; }
+    }
+}
+
+***********************************
+Archivo: IValidable.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\InterfacesDominio\IValidable.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.InterfacesDominio
+{
+    internal interface IValidable
+    {
+        public void Validar()
+        {
+        }
+    }
+}
+
+***********************************
+Archivo: IRepositorio.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\InterfacesRepositorio\IRepositorio.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.InterfacesRepositorio
+{
+    public interface IRepositorio <T>
+    {
+        public void Add(T obj);
+        public void Delete(int id);
+        public void Update(int id, T obj);
+        public T GetById(int id);
+        public IEnumerable<T> GetAll();
+    }
+}
+
+***********************************
+Archivo: IRepositorioArticulo.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\InterfacesRepositorio\IRepositorioArticulo.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.InterfacesRepositorio
+{
+    public interface IRepositorioArticulo:IRepositorio<Articulo>
+    {
+    }
+}
+
+***********************************
+Archivo: IRepositorioMovimientoDeStock.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\InterfacesRepositorio\IRepositorioMovimientoDeStock.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.InterfacesRepositorio
+{
+    public interface IRepositorioMovimientoDeStock
+        //No hereda de IRepositorio porque implementa menos funcionalidades
+        //La otra opcion, era que la implemente pero en el repositorio dejarla con la exception de no implementada
+    {
+        public void Add(MovimientoDeStockDto obj);
+        public MovimientoDeStock GetById(int id);
+        public IEnumerable<MovimientoDeStock> GetAll(int page);
+        public IEnumerable<MovimientoDeStock> GetAllXArtTipoPagl(int idArticulo, int idTipo, int page);
+        public IEnumerable<Articulo> GetPorFecha(DateTime desde, DateTime hasta, int page);
+        public int GetCantidadTotal();
+        public int GetCantidadDosFiltros(int idArt, int idTipo);
+        public int GetCantidadPorFecha(DateTime desde, DateTime hasta);
+        public IEnumerable<MovimientoDeStock> GetMovPorFecha(DateTime desde, DateTime hasta, int page);
+        public IEnumerable<Resultado> GetResumen();
+
+    }
+}
+
+***********************************
+Archivo: IRepositorioTipoDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\InterfacesRepositorio\IRepositorioTipoDeMovimiento.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.InterfacesRepositorio
+{
+    public interface IRepositorioTipoDeMovimiento:IRepositorio<TipoDeMovimiento>
+    {
+    }
+}
+
+***********************************
+Archivo: IRepositorioUsuario.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\InterfacesRepositorio\IRepositorioUsuario.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.InterfacesRepositorio
+{
+    public interface IRepositorioUsuario : IRepositorio<Usuario>
+    {
+        public IEnumerable<Administrador> GetAllAdministrador();
+        public Administrador GetAdminById(int id);
+        public void UpdateAdmin(int id,  Administrador administrador);
+        public Usuario Login(string email, string password); 
+        public Usuario GetByEmail(string email);
+        public string Token(Usuario usuario);
+    }
+}
+
+***********************************
+Archivo: Error.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Dtos\Error.cs
+***********************************
+
+namespace LogicaAccesoDatos.Dtos
+{
+    public record Error (int Code, string Message)
+    {
+       
+    }
+}
+
+
+***********************************
+Archivo: UserDto.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Dtos\UserDto.cs
+***********************************
+
+namespace LogicaNegocio.Dtos.Dto
+{ 
+    public class UserDto
+    {
+        public string Email { get; set; }
+
+        public string Pass { get; set; }
+
+    }
+}
+
+***********************************
+Archivo: BadRequestException .cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Excepciones\BadRequestException .cs
+***********************************
+
+namespace LogicaAccesoDatos.Excepciones
+{
+    public class BadRequestException : InfrastructuraException
+    {
+        public BadRequestException() { }
+        public BadRequestException(string message) : base(message) { }
+
+        public override int statusCode()
+        {
+            return 400;
+        }
+    }
+}
+
+***********************************
+Archivo: EmptyException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Excepciones\EmptyException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAccesoDatos.Excepciones
+{
+    public class EmptyException:Exception
+    {
+        public EmptyException() { }
+        public EmptyException(string message):base("No existen datos") { }
+    }
+}
+
+***********************************
+Archivo: InfrastructuraException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Excepciones\InfrastructuraException.cs
+***********************************
+
+using LogicaAccesoDatos.Dtos;
+using System.Text.Json;
+
+namespace LogicaAccesoDatos.Excepciones
+{
+    public abstract class InfrastructuraException : Exception
+    {
+        private string _message;
+
+        public InfrastructuraException() { }
+        public InfrastructuraException(string message) : base(message) { }
+
+        public abstract int statusCode();
+
+        public Error Error()
+        {
+            Error error = new Error(
+                statusCode(),
+                _message
+                // detalle del problema"",
+                // link de la doc
+                );
+            return error; //
+            //JsonSerializer.Serialize(error);
+        }
+    }
+}
+
+       
+
+
+
+
+***********************************
+Archivo: InternalServerErrorException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Excepciones\InternalServerErrorException.cs
+***********************************
+
+namespace LogicaAccesoDatos.Excepciones
+{
+    public class InternalServerErrorException : InfrastructuraException
+    {
+        public InternalServerErrorException() { }
+        public InternalServerErrorException(string message) : base(message) { }
+
+        public override int statusCode()
+        {
+            return 500;
+        }
+    }
+}
+
+***********************************
+Archivo: NotFoundException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Excepciones\NotFoundException.cs
+***********************************
+
+namespace LogicaAccesoDatos.Excepciones
+{
+    public class NotFoundException : InfrastructuraException
+    {
+
+        public NotFoundException() { }
+        public NotFoundException(string message) : base(message) { }
+
+        public override int statusCode()
+        {
+            return 404;
+        }
+    }
+}
+
+***********************************
+Archivo: UnauthorizedException .cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\Excepciones\UnauthorizedException .cs
+***********************************
+
+namespace LogicaAccesoDatos.Excepciones
+{
+    public class UnauthorizedException : InfrastructuraException
+    {
+        public override int statusCode()
+        {
+            return 401;
+        }
+    }
+}
+
+***********************************
+Archivo: IRestFull.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\RestFull\IRestFull.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Infraestructura.LogicaAccesoDatos.RestFull
+{
+    public interface IRestFull
+    {
+        String Get(string token, string resource);
+        string Post(string token, string resource, string json);
+        void Delete(string token, string resource);
+    }
+}
+
+***********************************
+Archivo: RepositorioMovimientoDeStock.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\RestFull\RepositorioMovimientoDeStock.cs
+***********************************
+using Azure;
+using Infraestructura.LogicaAccesoDatos.RestFull;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace LogicaAccesoDatos.RestFull
+{
+    public class RepositorioMovimientoDeStock : IRepositorioMovimientoDeStock
+
+    {
+        private IRestFull _clientRest;
+        private string token;
+
+        public RepositorioMovimientoDeStock(IRestFull clientRest, ITokenService tokenService)
+        {
+            _clientRest = clientRest;
+            token = tokenService.GetToken();
+        }
+        public void Add(MovimientoDeStockDto obj)
+        {
+            string jsonEntity = JsonSerializer.Serialize(obj);
+            const string endPoint = "MovimientoDeStock";
+            string json = _clientRest.Post(token, endPoint, jsonEntity);
+            //obj = ToolsEntity<MovimientoDeStockDto>.ObjetcFromJson(json);
+        }
+
+        public IEnumerable<MovimientoDeStock> GetAll(int page=0)
+        {
+            string resource = $"MovimientoDeStock?page={page}";
+            string json = _clientRest.Get(token, resource);
+            return ToolsEntity<MovimientoDeStock>.ListFromJson(json);
+        }
+
+        public IEnumerable<MovimientoDeStock> GetAllXArtTipoPagl(int idArticulo, int idTipo, int page)
+        {
+            string resource = $"MovimientoDeStock/FiltroXArtTipoPag?idArticulo={idArticulo}&idTipo={idTipo}&page={page}";
+            string json = _clientRest.Get(token, resource);
+            return ToolsEntity<MovimientoDeStock>.ListFromJson(json);
+        }
+
+        public MovimientoDeStock GetById(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int GetCantidadDosFiltros(int idArt, int idTipo)
+        {
+            string resource = $"MovimientoDeStock/GetCountDosFiltros?idArticulo={idArt}&&idTipo={idTipo}";
+            string json = _clientRest.Get(token, resource);
+            double cantPaginas;
+            double.TryParse(json, out cantPaginas);
+            return (int)cantPaginas;
+        }
+
+        public int GetCantidadTotal()
+        {
+            string resource = "MovimientoDeStock/GetCount";
+            string json = _clientRest.Get(token, resource);
+            double cantPaginas;
+            double.TryParse(json, out cantPaginas);
+            return (int)cantPaginas;
+        }
+        public int GetCantidadPorFecha(DateTime desde, DateTime hasta)
+        {
+            string resource = $"MovimientoDeStock/GetCountPorFecha?desdestr={desde.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}&hastastr={hasta.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}";
+            string json = _clientRest.Get(token, resource);
+            double cantPaginas;
+            double.TryParse(json, out cantPaginas);
+            return (int)cantPaginas;
+        }
+
+        public IEnumerable<MovimientoDeStock> GetMovPorFecha(DateTime desde, DateTime hasta, int page)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Articulo> GetPorFecha(DateTime desde, DateTime hasta, int page)
+        {
+            string resource = $"MovimientoDeStock/FiltroXFecha?desdestr={desde.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}&hastastr={hasta.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}&page={page}";
+            string json = _clientRest.Get(token, resource);
+            return ToolsEntity<Articulo>.ListFromJson(json);
+        }
+
+        public IEnumerable<Resultado> GetResumen()
+        {
+            string resource = "MovimientoDeStock/GetResumen";
+            string json = _clientRest.Get(token, resource);
+            return ToolsEntity<Resultado>.ListFromJson(json);
+        }
+    }
+}
+
+***********************************
+Archivo: RepositorioTipoDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\RestFull\RepositorioTipoDeMovimiento.cs
+***********************************
+using Azure;
+using Infraestructura.LogicaAccesoDatos.RestFull;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace LogicaAccesoDatos.RestFull
+{
+    //este repositorio no lo pide la letra
+    public class RepositorioTipoDeMovimiento : IRepositorioTipoDeMovimiento
+    {
+        private IRestFull _clientRest;
+
+        public RepositorioTipoDeMovimiento(IRestFull clientRest)
+        {
+            _clientRest = clientRest;
+        }
+        public void Add(TipoDeMovimiento obj)
+        {
+            string jsonEntity = JsonSerializer.Serialize(obj);
+            const string endPoint = "TipoDeMovimiento";
+            string json = _clientRest.Post("", endPoint, jsonEntity);
+            //obj = ToolsEntity<TipoDeMovimiento>.ObjetcFromJson(json);
+        }
+
+        public void Delete(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<TipoDeMovimiento> GetAll()
+        {
+            string resource = "TipoDeMovimiento";
+            string json = _clientRest.Get("", resource);
+            return ToolsEntity<TipoDeMovimiento>.ListFromJson(json);
+
+        }
+
+        public TipoDeMovimiento GetById(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Update(int id, TipoDeMovimiento obj)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+***********************************
+Archivo: RepositorioUsuario.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\RestFull\RepositorioUsuario.cs
+***********************************
+using System.Text.Json;
+using LogicaNegocio.Dtos.Dto;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.InterfacesRepositorio;
+using LogicaAccesoDatos.RestFull;
+
+namespace Infraestructura.LogicaAccesoDatos.RestFull
+{
+    public class RepositorioUsuario : IRepositorioUsuario
+    {
+
+        private IRestFull _clientRest;
+
+
+        public RepositorioUsuario(IRestFull clientRest)
+        {
+            _clientRest = clientRest;
+
+        }
+
+        public void Add(Usuario obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Delete(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Administrador GetAdminById(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Usuario> GetAll()
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<Administrador> GetAllAdministrador()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Usuario GetByEmail(string email)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Usuario GetById(int id)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Usuario Login(string email, string password)
+        {
+            var user = new UserDto()
+            {
+                Email = email,
+                Pass = password,
+            };
+
+            string jsonEntity = JsonSerializer.Serialize(user);
+            const string endPoint = "Usuario/Login"; 
+            string json = _clientRest.Post("", endPoint, jsonEntity);
+            Usuario u = ToolsEntity<Usuario>.ObjetcFromJson(json);
+            return u;
+        }
+
+        public string Token(Usuario usuario)
+        {
+            var user = new UserDto()
+            {
+                Email = usuario.Email,
+                Pass = usuario.PasswordHash,
+            };
+
+            string jsonEntity = JsonSerializer.Serialize(user);
+            const string endPoint = "Usuario";
+            string json = _clientRest.Post("", endPoint, jsonEntity);
+            string token = ToolsEntity<string>.ObjetcFromJson(json);
+            return token;
+        }
+
+        public void Update(int id, Usuario obj)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void UpdateAdmin(int id, Administrador administrador)
+        {
+            throw new NotImplementedException();
+        }
+    }
+}
+
+***********************************
+Archivo: RestContext.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\RestFull\RestContext.cs
+***********************************
+using Azure.Core;
+using Infraestructura.LogicaAccesoDatos.RestFull;
+using LogicaAccesoDatos.Excepciones;
+using LogicaDeNegocio.Entidades;
+using RestSharp;
+using System;
+using System.Collections.Generic;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+
+namespace LogicaAccesoDatos.RestFull;
+
+public class RestContext : IRestFull
+{
+    // Clase genérica RestContext que implementa la interfaz IRestFull
+    private RestClient _httpClient;
+    private string _apiUrl = "";
+    private RestRequest _request;
+
+
+    // Recibo por inyeccion la url y creo el cliente. Se acopla al conocimiento de RestSharp
+    public RestContext(string apiUrl)
+    {
+        _apiUrl = apiUrl;
+        // Inicializa la URL base de la API con el valor proporcionado.
+        _httpClient = new RestClient(_apiUrl);
+    }
+
+
+    // Recibe el Recurso y devuelve el json son el resultado de la request
+    public String Get(string token, string endPoint)
+    {
+        var _request = new RestRequest(endPoint);
+        _request.AddHeader("Contet-Type", "application/json");
+        if (token != "")
+        {
+            _request.AddHeader("Authorization", $"Bearer {token}");
+        }
+        var response = _httpClient.ExecuteGet(_request);
+        if ((int)response.StatusCode == 204)
+        {
+            throw new EmptyException();
+        }
+
+        if ((int)response.StatusCode >= 300)
+        {
+            throw new Exception($"Hubo un error {response.StatusCode}");
+        }
+
+        if (response.Content == null)
+        {
+            throw new Exception("No se encontraron datos");
+        }
+        return response.Content;
+    }
+
+  
+    // Recibe el Recurso y el json a dar de alta
+    public string Post(string token, string endPoint, string json)
+    {
+        var _request = new RestRequest(endPoint);
+        _request.AddHeader("Contet-Type", "application/json");
+        if (token != "")
+        {
+            _request.AddHeader("Authorization", $"Bearer {token}");
+        }
+        _request.AddBody(json);
+        var response = _httpClient.ExecutePost(_request);
+        if ((int)response.StatusCode == 204)
+        {
+            throw new EmptyException();
+        }
+        if ((int)response.StatusCode >= 300)
+        {
+            throw new Exception($"Hubo un error {response.StatusCode}");
+        }
+        if (response.Content == null)
+        {
+            throw new Exception("No se encontraron datos");
+        }
+        return response.Content;
+    }
+
+    // Recibe el Recurso y devuelve el json son el resultado de la request
+    public void Delete(string token, string endPoint)
+    {
+        var _request = new RestRequest(endPoint, Method.Delete);
+        _request.AddHeader("Contet-Type", "application/json");
+        _request.AddHeader("Authorization", $"Bearer {token}");
+        _httpClient.Execute(_request);
+    }
+
+}
+
+
+
+
+***********************************
+Archivo: ToolsEntity.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAccesoDatos\RestFull\ToolsEntity.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
+
+namespace LogicaAccesoDatos.RestFull
+{
+    public static class ToolsEntity<T>
+    {
+        public static IEnumerable<T> ListFromJson(string json)
+        {
+            JsonSerializerOptions options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            };
+            var entities = JsonSerializer.Deserialize<List<T>>(json, options);
+            return entities;
+        }
+
+        public static T ObjetcFromJson(string json)
+        {
+
+            if (string.IsNullOrEmpty(json))
+            {
+                throw new Exception("El json no se puede desealizar");
+            }
+            JsonSerializerOptions options = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                WriteIndented = true
+            };
+            var entity = JsonSerializer.Deserialize<T>(json, options);
+            return entity;
+        }
+
+
+    }
+}
+
+***********************************
+Archivo: AltaArticulo.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Articulos\AltaArticulo.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Articulos
+{
+    public class AltaArticulo : IAlta<Articulo>
+    {
+        IRepositorioArticulo _repositorioArticulo;
+        public AltaArticulo(IRepositorioArticulo repositorioArticulo)
+        {
+            _repositorioArticulo = repositorioArticulo;
+        }
+
+        public void Ejecutar(Articulo articulo)
+        {
+            _repositorioArticulo.Add(articulo);
+        }
+    }
+}
+
+***********************************
+Archivo: EditarArticulo.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Articulos\EditarArticulo.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Articulos
+{
+    public class EditarArticulos : IEditar<Articulo>
+    {
+        IRepositorioArticulo _repositorioArticulo;
+        public EditarArticulos(IRepositorioArticulo repositorioArticulo)
+        {
+            _repositorioArticulo = repositorioArticulo;
+        }
+
+        public void Ejecutar(int id, Articulo obj)
+        {
+            _repositorioArticulo.Update(id, obj);
+        }
+    }
+}
+
+***********************************
+Archivo: EliminarArticulo.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Articulos\EliminarArticulo.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Articulos
+{
+    public class EliminarArticulo : IEliminar<Articulo>
+    {
+        IRepositorioArticulo _repositorioArticulo;
+        public EliminarArticulo(IRepositorioArticulo repositorioArticulo)
+        {
+            _repositorioArticulo = repositorioArticulo;
+        }
+
+        public void Ejecutar(int id)
+        {
+            _repositorioArticulo.Delete(id);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerArticulo.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Articulos\ObtenerArticulo.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Articulos
+{
+    public class ObtenerArticulo : IObtener<Articulo>
+    {
+        IRepositorioArticulo _repositorioArticulo;
+        public ObtenerArticulo(IRepositorioArticulo repositorioArticulo)
+        {
+            _repositorioArticulo = repositorioArticulo;
+        }
+
+        public Articulo Ejecutar(int id)
+        {
+            return _repositorioArticulo.GetById(id);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerArticulos.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Articulos\ObtenerArticulos.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Articulos
+{
+    public class ObtenerArticulos : IObtenerTodos<Articulo>
+    {
+        IRepositorioArticulo _repositorioArticulo;
+        public ObtenerArticulos(IRepositorioArticulo repositorioArticulos)
+        {
+            _repositorioArticulo = repositorioArticulos;
+        }
+        public IEnumerable<Articulo> Ejecutar()
+        {
+            return _repositorioArticulo.GetAll();
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerArticulosPorFecha.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Articulos\ObtenerArticulosPorFecha.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Articulos
+{
+    public class ObtenerArticulosPorFecha:IObtenerPorFecha<Articulo>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientos;
+        public ObtenerArticulosPorFecha(IRepositorioMovimientoDeStock repositorioMovimientos)
+        {
+            _repositorioMovimientos = repositorioMovimientos;
+        }
+        public IEnumerable<Articulo> Ejecutar(DateTime desde, DateTime hasta, int page)
+        {
+            return _repositorioMovimientos.GetPorFecha(desde, hasta, page);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerCantidadPorFecha.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Articulos\ObtenerCantidadPorFecha.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Articulos
+{
+    public class ObtenerCantidadPorFecha : ICantidadPorFecha<Articulo>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientos;
+        public ObtenerCantidadPorFecha(IRepositorioMovimientoDeStock repositorioMovimientos)
+        {
+            _repositorioMovimientos = repositorioMovimientos;
+        }
+        public int Ejecutar(DateTime desde, DateTime hasta)
+        {
+            return _repositorioMovimientos.GetCantidadPorFecha(desde, hasta);
+        }
+    }
+}
+
+***********************************
+Archivo: AltaMovimientoDeStock.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\AltaMovimientoDeStock.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class AltaMovimientoDeStock : IAlta<MovimientoDeStockDto>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientoDeStock;
+        public AltaMovimientoDeStock(IRepositorioMovimientoDeStock repositorioMovimientoDeStock)
+        {
+            _repositorioMovimientoDeStock = repositorioMovimientoDeStock;
+        }
+
+        public void Ejecutar(MovimientoDeStockDto movimientoDeStock)
+        {
+            _repositorioMovimientoDeStock.Add(movimientoDeStock);
+        }
+    }
+}
+
+***********************************
+Archivo: GetAllXArtTipoPag.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\GetAllXArtTipoPag.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class GetAllXArtTipoPag:IObtenerDosFiltros<MovimientoDeStock>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientoDeStock;
+        public GetAllXArtTipoPag(IRepositorioMovimientoDeStock repositorioMovimientoDeStock)
+        {
+            _repositorioMovimientoDeStock = repositorioMovimientoDeStock;
+        }
+
+        public IEnumerable<MovimientoDeStock> Ejecutar(int idArticulo, int idTipo, int page)
+        {
+            return _repositorioMovimientoDeStock.GetAllXArtTipoPagl(idArticulo,idTipo,page);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerCantidadDosFiltros.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\ObtenerCantidadDosFiltros.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class ObtenerCantidadDosFiltros:ICantidadDosFiltros<MovimientoDeStock>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientos;
+        public ObtenerCantidadDosFiltros(IRepositorioMovimientoDeStock repositorioMovimientos)
+        {
+            _repositorioMovimientos = repositorioMovimientos;
+        }
+
+        public int Ejecutar(int idArt, int idTipo)
+        {
+            return _repositorioMovimientos.GetCantidadDosFiltros(idArt, idTipo);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerCantidadTotal.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\ObtenerCantidadTotal.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class ObtenerCantidadTotal : ICantidadTotal<MovimientoDeStock>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientos;
+        public ObtenerCantidadTotal(IRepositorioMovimientoDeStock repositorioMovimientos)
+        {
+            _repositorioMovimientos = repositorioMovimientos;
+        }
+
+        public int Ejecutar()
+        {
+            return _repositorioMovimientos.GetCantidadTotal();
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerMovimientoDeStock.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\ObtenerMovimientoDeStock.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class ObtenerMovimientoDeStock : IObtener<MovimientoDeStock>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientoDeStock;
+        public ObtenerMovimientoDeStock(IRepositorioMovimientoDeStock repositorioMovimientoDeStock)
+        {
+            _repositorioMovimientoDeStock = repositorioMovimientoDeStock;
+        }
+
+        public MovimientoDeStock Ejecutar(int id)
+        {
+            return _repositorioMovimientoDeStock.GetById(id);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerMovimientosDeStock.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\ObtenerMovimientosDeStock.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class ObtenerMovimientosDeStock : IObtenerTodosPaginado<MovimientoDeStock>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientoDeStock;
+        public ObtenerMovimientosDeStock(IRepositorioMovimientoDeStock repositorioMovimientoDeStock)
+        {
+            _repositorioMovimientoDeStock = repositorioMovimientoDeStock;
+        }
+        public IEnumerable<MovimientoDeStock> Ejecutar(int page)
+        {
+            return _repositorioMovimientoDeStock.GetAll(page);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerMovimientosPorFecha.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\ObtenerMovimientosPorFecha.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class ObtenerMovimientosPorFecha:IObtenerPorFecha<MovimientoDeStock>
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientoDeStock;
+        public ObtenerMovimientosPorFecha(IRepositorioMovimientoDeStock repositorioMovimientoDeStock)
+        {
+            _repositorioMovimientoDeStock = repositorioMovimientoDeStock;
+        }
+        public IEnumerable<MovimientoDeStock> Ejecutar(DateTime desde, DateTime hasta, int page)
+        {
+            return _repositorioMovimientoDeStock.GetMovPorFecha(desde, hasta, page);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerResumen.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\MovimientoDeStocks\ObtenerResumen.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.MovimientoDeStocks
+{
+    public class ObtenerResumen:IObtenerResumen
+    {
+        IRepositorioMovimientoDeStock _repositorioMovimientoDeStock;
+        public ObtenerResumen(IRepositorioMovimientoDeStock repositorioMovimientoDeStock)
+        {
+            _repositorioMovimientoDeStock = repositorioMovimientoDeStock;
+        }
+
+        public IEnumerable<Resultado> Ejecutar()
+        {
+            return _repositorioMovimientoDeStock.GetResumen();
+        }
+    }
+}
+
+***********************************
+Archivo: AltaTipoDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\TipoDeMovimientos\AltaTipoDeMovimiento.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.TipoDeMovimientos
+{
+    public class AltaTipoDeMovimiento : IAlta<TipoDeMovimiento>
+    {
+        IRepositorioTipoDeMovimiento _repositorioTiposDeMovimiento;
+        public AltaTipoDeMovimiento(IRepositorioTipoDeMovimiento repositorioTiposDeMovimiento)
+        {
+            _repositorioTiposDeMovimiento = repositorioTiposDeMovimiento;
+        }
+
+        public void Ejecutar(TipoDeMovimiento tipoDeMovimiento)
+        {
+            _repositorioTiposDeMovimiento.Add(tipoDeMovimiento);
+        }
+    }
+}
+
+***********************************
+Archivo: EditarTipoDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\TipoDeMovimientos\EditarTipoDeMovimiento.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.TipoDeMovimientos
+{
+    public class EditarTipoDeMovimiento : IEditar<TipoDeMovimiento>
+    {
+        IRepositorioTipoDeMovimiento _repositorioTipoDeMovimiento;
+        public EditarTipoDeMovimiento(IRepositorioTipoDeMovimiento repositorioTipoDeMovimiento)
+        {
+            _repositorioTipoDeMovimiento = repositorioTipoDeMovimiento;
+        }
+
+        public void Ejecutar(int id, TipoDeMovimiento obj)
+        {
+            _repositorioTipoDeMovimiento.Update(id, obj);
+        }
+    }
+}
+
+***********************************
+Archivo: EliminarTipoDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\TipoDeMovimientos\EliminarTipoDeMovimiento.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.TipoDeMovimientos
+{
+    public class EliminarTipoDeMovimiento : IEliminar<TipoDeMovimiento>
+    {
+        IRepositorioTipoDeMovimiento _repositorioTipoDeMovimiento;
+        public EliminarTipoDeMovimiento(IRepositorioTipoDeMovimiento repositorioTipoDeMovimiento)
+        {
+            _repositorioTipoDeMovimiento = repositorioTipoDeMovimiento;
+        }
+
+        public void Ejecutar(int id)
+        {
+            _repositorioTipoDeMovimiento.Delete(id);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerTipoDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\TipoDeMovimientos\ObtenerTipoDeMovimiento.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.TipoDeMovimientos
+{
+    public class ObtenerTipoDeMovimiento : IObtener<TipoDeMovimiento>
+    {
+		IRepositorioTipoDeMovimiento _repositorioTipoDeMovimiento;
+        public ObtenerTipoDeMovimiento(IRepositorioTipoDeMovimiento repositorioTipoDeMovimiento)
+        {
+			_repositorioTipoDeMovimiento = repositorioTipoDeMovimiento;
+        }
+
+        public TipoDeMovimiento Ejecutar(int id)
+        {
+            return _repositorioTipoDeMovimiento.GetById(id);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerTiposDeMovimiento.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\TipoDeMovimientos\ObtenerTiposDeMovimiento.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.TipoDeMovimientos
+{
+    public class ObtenerTiposDeMovimiento:IObtenerTodos<TipoDeMovimiento>
+    {
+        IRepositorioTipoDeMovimiento _repositorioTipoDeMovimiento;
+        public ObtenerTiposDeMovimiento(IRepositorioTipoDeMovimiento repositorioTipoDeMovimiento)
+        {
+            _repositorioTipoDeMovimiento = repositorioTipoDeMovimiento;
+        }
+        public IEnumerable<TipoDeMovimiento> Ejecutar()
+        {
+            return _repositorioTipoDeMovimiento.GetAll();
+        }
+    }
+}
+
+***********************************
+Archivo: AltaUsuario.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\AltaUsuario.cs
+***********************************
+using LogicaDeNegocio.InterfacesRepositorio;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class AltaUsuario:IAlta<Usuario>
+    {
+        IRepositorioUsuario _repositorioUsuario;
+        public AltaUsuario(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuario = repositorioUsuario;
+        }
+        public void Ejecutar(Usuario usuario)
+        {
+//            usuario.Password = PasswordHasher.HashPassword(usuario.Password); asi deberia ser
+            usuario.PasswordHash = PasswordHasher.HashPassword(usuario.Password);
+            _repositorioUsuario.Add(usuario);
+        }
+    }
+}
+
+***********************************
+Archivo: EditarAdministrador.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\EditarAdministrador.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class EditarAdministrador:IEditar<Administrador>
+    {
+        IRepositorioUsuario _repositorioUsuario;
+        public EditarAdministrador(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuario = repositorioUsuario;
+        }
+        public void Ejecutar(int id, Administrador admin)
+        {
+            admin.PasswordHash=PasswordHasher.HashPassword(admin.Password);
+            _repositorioUsuario.UpdateAdmin(id, admin);
+        }
+    }
+}
+
+***********************************
+Archivo: EditarUsuario.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\EditarUsuario.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class EditarUsuario:IEditar<Usuario>
+    {
+        IRepositorioUsuario _repositorioUsuario;
+        public EditarUsuario(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuario = repositorioUsuario;
+        }
+        public void Ejecutar(int id, Usuario usuario)
+        {
+            _repositorioUsuario.Update(id, usuario);
+        }
+    }
+}
+
+***********************************
+Archivo: EliminarUsuario.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\EliminarUsuario.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class EliminarUsuario:IEliminar<Usuario>
+    {
+        IRepositorioUsuario _repositorioUsuarios;
+        public EliminarUsuario(IRepositorioUsuario repositorioUsuarios)
+        {
+            _repositorioUsuarios = repositorioUsuarios;
+        }
+        public void Ejecutar(int id)
+        {
+            _repositorioUsuarios.Delete(id);
+        }
+    }
+}
+
+***********************************
+Archivo: Login.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\Login.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class Login:ILogin<Usuario>
+    {
+        IRepositorioUsuario _repositorioUsuario;
+        public Login(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuario = repositorioUsuario;
+        }
+        public Usuario Ejecutar(string email, string password)
+        {
+            password = PasswordHasher.HashPassword(password);
+            return _repositorioUsuario.Login(email, password);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerAdministrador.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\ObtenerAdministrador.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class ObtenerAdministrador:IObtener<Administrador>
+    {
+        IRepositorioUsuario _repositorioUsuarios;
+        public ObtenerAdministrador(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuarios = repositorioUsuario;
+        }
+        public Administrador Ejecutar(int id)
+        {
+            return _repositorioUsuarios.GetAdminById(id);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerAdministradores.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\ObtenerAdministradores.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class ObtenerAdministradores:IObtenerTodos<Administrador>
+    {
+        IRepositorioUsuario _repositorioUsuario;
+        public ObtenerAdministradores(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuario = repositorioUsuario;
+        }
+        public IEnumerable<Administrador> Ejecutar()
+        {
+            return _repositorioUsuario.GetAllAdministrador();
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerDeEmail.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\ObtenerDeEmail.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class ObtenerDeEmail:IObtenerDeString<Usuario>
+    {
+        IRepositorioUsuario _repositorioUsuarios;
+        public ObtenerDeEmail(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuarios = repositorioUsuario;
+        }
+        public Usuario Ejecutar(string email)
+        {
+            return _repositorioUsuarios.GetByEmail(email);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerToken.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\ObtenerToken.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class ObtenerToken : IObtenerToken
+    {
+        IRepositorioUsuario _repositorioUsuario;
+        public ObtenerToken(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuario = repositorioUsuario;
+        }
+        public string Ejecutar(Usuario unUsuario)
+        {
+            return _repositorioUsuario.Token(unUsuario);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerUsuario.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\ObtenerUsuario.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class ObtenerUsuario:IObtener<Usuario>
+    {
+        IRepositorioUsuario _repositorioUsuarios;
+        public ObtenerUsuario(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuarios = repositorioUsuario;
+        }
+        public Usuario Ejecutar(int id)
+        {
+            return _repositorioUsuarios.GetById(id);
+        }
+    }
+}
+
+***********************************
+Archivo: ObtenerUsuarios.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\ObtenerUsuarios.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaAplicacion.Usuarios
+{
+    public class ObtenerUsuarios:IObtenerTodos<Usuario>
+    {
+        IRepositorioUsuario _repositorioUsuario;
+        public ObtenerUsuarios(IRepositorioUsuario repositorioUsuario)
+        {
+            _repositorioUsuario = repositorioUsuario;
+        }
+        public IEnumerable<Usuario> Ejecutar()
+        {
+            return _repositorioUsuario.GetAll();
+        }
+    }
+}
+
+***********************************
+Archivo: PasswordHasher.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\LogicaAplicacion\Usuarios\PasswordHasher.cs
+***********************************
+using System;
+using System.Security.Cryptography;
+using System.Text;
+
+public class PasswordHasher
+{
+    public static string HashPassword(string password)
+    {
+        using (SHA256 sha256Hash = SHA256.Create())
+        {
+            byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+            StringBuilder builder = new StringBuilder();
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                builder.Append(bytes[i].ToString("x2"));
+            }
+            return builder.ToString();
+        }
+    }
+}
+
+***********************************
+Archivo: ArticulosController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApi\Controllers\ArticulosController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApi.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class ArticulosController : ControllerBase
+    {
+        IObtenerTodos<Articulo> _obtenerTodos;
+
+        public ArticulosController(IObtenerTodos<Articulo> obtenerTodos)
+        {
+            _obtenerTodos = obtenerTodos;
+        }
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            try
+            {
+                return Ok(_obtenerTodos.Ejecutar());
+            }
+            catch (RepositorioException)
+            {
+                return StatusCode(StatusCodes.Status204NoContent);
+            }
+            catch (Exception e)
+            {
+                return StatusCode(500, "Hupp" + e.Message);
+            }
+        }
+    }
+}
+
+***********************************
+Archivo: MovimientoDeStockController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApi\Controllers\MovimientoDeStockController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.Excepciones;
+using LogicaDeNegocio.Excepciones.MovimientoDeStock;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApi.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class MovimientoDeStockController : ControllerBase
+    {
+        private IAlta<MovimientoDeStock> _altaMovimiento;
+        private IObtener<MovimientoDeStock> _obtenerMovimiento;
+        private IObtenerTodos<MovimientoDeStock> _obtenerTodos;
+        private IObtenerDosFiltros<MovimientoDeStock> _getAllXArtTipoPag;
+        private IObtener<Articulo> _obtenerArticulo;
+        private IObtener<TipoDeMovimiento> _obtenerTipo;
+        private IObtener<Usuario> _obtenerUsuario;
+        private IObtenerDeString<Usuario> _obtenerUsuarioDesdeEmail;
+        private IObtenerPorFecha<MovimientoDeStock> _obtenerMovimientosPorFecha;
+
+        public MovimientoDeStockController(IAlta<MovimientoDeStock> alta,
+                                  IObtener<MovimientoDeStock> obtenerMovimiento,
+                                  IObtenerTodos<MovimientoDeStock> obtenerTodos,
+                                  IObtenerDosFiltros<MovimientoDeStock> getAllXArtTipoPag,
+                                  IObtener<Articulo> obtenerArticulo,
+                                  IObtener<TipoDeMovimiento> obtenerTipo,
+                                  IObtener<Usuario> obtenerUsuario,
+                                  IObtenerDeString<Usuario> obtenerUsuarioDesdeEmail,
+                                  IObtenerPorFecha<MovimientoDeStock> obtenerMovimientosPorFecha)
+        {
+            _altaMovimiento = alta;
+            _obtenerMovimiento = obtenerMovimiento;
+            _obtenerTodos = obtenerTodos;
+            _getAllXArtTipoPag = getAllXArtTipoPag;
+            _obtenerArticulo = obtenerArticulo;
+            _obtenerTipo = obtenerTipo;
+            _obtenerUsuario = obtenerUsuario;
+            _obtenerUsuarioDesdeEmail = obtenerUsuarioDesdeEmail;
+            _obtenerMovimientosPorFecha = obtenerMovimientosPorFecha;
+        }
+
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Authorize]
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            try
+            {
+                return Ok(_obtenerTodos.Ejecutar());
+
+            }
+            catch (NotFoundException e)
+            {
+                return StatusCode(204, e.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Contacte al administrador");
+            }
+        }
+
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Authorize]
+        [HttpGet("{id}")]
+        public IActionResult GetById(int id)
+        {
+            try
+            {
+                return Ok(_obtenerMovimiento.Ejecutar(id));
+            }
+            catch (ArgumentNullRepositorioException e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (NotFoundException e)
+            {
+                return StatusCode(404, e.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Contacte al administrador");
+            }
+        }
+
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Authorize]
+        [HttpPost]
+        public IActionResult Create(MovimientoDeStockDto unMovimiento)
+        {
+            try
+            {
+                if (unMovimiento == null)
+                {
+                    throw new ArgumentException("Los valores enviados son incorrectos");
+                }
+                if (unMovimiento.articuloId == null)
+                {
+                    throw new ArticuloDeMovimientoInvalidoException();
+                }
+                if (unMovimiento.ejecutorEmail == null)
+                {
+                    throw new RolUsuarioInvalidoException();
+                }
+                if (unMovimiento.cantidad == null||unMovimiento.cantidad>ParametrosGenerales.cantMaxPorMovimiento||unMovimiento.cantidad<=0)
+                {
+                    throw new CantidadInvalidaException();
+                }
+                MovimientoDeStock movimiento = new MovimientoDeStock()
+                {
+                    articulo = _obtenerArticulo.Ejecutar(unMovimiento.articuloId),
+                    tipo = _obtenerTipo.Ejecutar(unMovimiento.tipoId),
+                    cantidad = unMovimiento.cantidad,
+                    ejecutor = _obtenerUsuarioDesdeEmail.Ejecutar(unMovimiento.ejecutorEmail),
+                };
+                if(movimiento.ejecutor.Discriminator != "Encargado")
+                {
+                    throw new RolUsuarioInvalidoException();
+                }
+                movimiento.Validar();
+                _altaMovimiento.Ejecutar(movimiento);
+                return StatusCode(201);
+            }
+            catch (ArgumentException e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (DominioExcpetion e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (RepositorioException e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Contactese con el administrador");
+            }
+        }
+
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Authorize]
+        [HttpGet]
+        [Route("api/MovimientoDeStock/FiltroXArtTipoPag")]
+        public IActionResult FiltroXArtTipoPag(int idArticulo, int idTipo, int page)
+        {
+            try
+            {
+                return Ok(_getAllXArtTipoPag.Ejecutar(idArticulo, idTipo, page));
+            }
+            catch (NotFoundException e)
+            {
+                return StatusCode(204, e.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Contacte al administrador");
+            }
+        }
+    }
+}
+
+***********************************
+Archivo: TipoDeMovimientoController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApi\Controllers\TipoDeMovimientoController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.Excepciones;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApi.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class TipoDeMovimientoController : ControllerBase
+    {
+        private IAlta<TipoDeMovimiento> _altaTipoDeMovimiento;
+        private IEliminar<TipoDeMovimiento> _eliminarTipoDeMovimiento;
+        private IEditar<TipoDeMovimiento> _editarTipoDeMovimiento;
+        private IObtener<TipoDeMovimiento> _obtenerTipoDeMovimiento;
+        private IObtenerTodos<TipoDeMovimiento> _obtenerTiposDeMovimiento;
+        public TipoDeMovimientoController(
+            IAlta<TipoDeMovimiento> altaTipoDeMovimiento,
+            IEliminar<TipoDeMovimiento> eliminarTipoDeMovimiento,
+            IEditar<TipoDeMovimiento> editarTipoDeMovimiento,
+            IObtener<TipoDeMovimiento> obtenerTipoDeMovimiento,
+            IObtenerTodos<TipoDeMovimiento> obtenerTiposDeMovimiento
+            )
+        {
+            _altaTipoDeMovimiento = altaTipoDeMovimiento;
+            _eliminarTipoDeMovimiento = eliminarTipoDeMovimiento;
+            _editarTipoDeMovimiento = editarTipoDeMovimiento;
+            _obtenerTipoDeMovimiento = obtenerTipoDeMovimiento;
+            _obtenerTiposDeMovimiento = obtenerTiposDeMovimiento;
+        }
+
+
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            try
+            {
+                return Ok(_obtenerTiposDeMovimiento.Ejecutar());
+
+            } catch (NotFoundException e)
+            {
+                return StatusCode(204, e.Message);
+            } catch (Exception)
+            {
+                return StatusCode(500, "Contacte al administrador");
+            }
+        }
+
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpGet("{id}")]
+        public IActionResult GetById(int id)
+        {
+            try
+            {
+                return Ok(_obtenerTipoDeMovimiento.Ejecutar(id));
+            } catch (ArgumentNullRepositorioException e)
+            {
+                return StatusCode(400, e.Message);
+            } catch (NotFoundException e)
+            {
+                return StatusCode(404, e.Message);
+            } catch (Exception)
+            {
+                return StatusCode(500, "Contacte al administrador");
+            }
+        }
+
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpPost]
+        public IActionResult Create(TipoDeMovimiento UnTipo)
+        {
+            try
+            {
+                if (UnTipo == null)
+                {
+                    throw new ArgumentException("Los valores enviados son incorrectos");
+                }
+                UnTipo.Validar();
+                _altaTipoDeMovimiento.Ejecutar(UnTipo);
+                return StatusCode(201);
+            }
+            catch (ArgumentException e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (DominioExcpetion e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (RepositorioException e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Contactese con el administrador");
+            }
+        }
+
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpDelete("{id}")]
+        public IActionResult Delete(int id)
+        {
+            try
+            {
+                _eliminarTipoDeMovimiento.Ejecutar(id);
+                return StatusCode(201);
+            }
+            catch (RepositorioException e)
+            {
+                return StatusCode(400, e.Message);
+            } catch (Exception)
+            {
+                return StatusCode(500, "Contactese con el administrador");
+            }
+        }
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [HttpPut("{id}")]
+        public IActionResult Edit(int id, TipoDeMovimiento tipo)
+        {
+            try
+            {
+                _editarTipoDeMovimiento.Ejecutar(id, tipo);
+                return StatusCode(200);
+            }
+            catch (DominioExcpetion e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (RepositorioException e)
+            {
+                return StatusCode(400, e.Message);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Contactese con el administrador");
+            }
+        }
+    }
+}
+
+***********************************
+Archivo: UsuarioController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApi\Controllers\UsuarioController.cs
+***********************************
+using LogicaAplicacion.Usuarios;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApi.Controllers
+{
+    [Route("api/[controller]")]
+    [ApiController]
+    public class UsuarioController : ControllerBase
+    {
+        private IObtener<Usuario> _obtenerUsuario;//todo si no lo uso, lo borro
+        private ILogin<Usuario> _login;
+
+        public UsuarioController(IObtener<Usuario> obtener,
+                                 ILogin<Usuario> login)
+        {
+            _obtenerUsuario=obtener;
+            _login = login;
+        }
+        [HttpPost]
+        public IActionResult Token(string email, string pass)
+        {
+            try
+            {
+                Usuario usuario = _login.Ejecutar(email, pass);
+                var token = ManejadorJwt.GenerarToken(usuario);
+                return Ok(token);
+            }catch (Exception ex)//todo arreglar los catch
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+        [HttpPost]
+        [Route("api/Usuario/Login")]
+        public IActionResult Login(string email, string pass)
+        {
+            try
+            {
+                Usuario usuario = _login.Ejecutar(email, pass);
+                return Ok(usuario);
+            }
+            catch (Exception ex)//todo arreglar los catch
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+    }
+}
+
+***********************************
+Archivo: ArticuloController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Controllers\ArticuloController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaAplicacion.Administradores;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.Excepciones;
+using LogicaDeNegocio.Excepciones.Articulo;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+using System.Linq;
+using WebApp.Filter;
+
+namespace WebApp.Controllers
+{
+    public class ArticuloController : Controller
+    {
+        IObtenerTodos<Articulo> _obtenerTodos;
+        IObtener<Articulo> _obtenerArticulo;
+        IAlta<Articulo> _altaArticulo;
+        IEliminar<Articulo> _eliminarArticulo;
+        IEditar<Articulo> _editarArticulo;
+        public ArticuloController(IObtenerTodos<Articulo> obtenerTodos,
+                                    IObtener<Articulo> obtenerArticulo,
+                                    IAlta<Articulo> altaArticulo,
+                                    IEliminar<Articulo> eliminarArticulo,
+                                    IEditar<Articulo> editarArticulo)
+        {
+            _obtenerTodos = obtenerTodos;
+            _obtenerArticulo = obtenerArticulo;
+            _altaArticulo = altaArticulo;
+            _eliminarArticulo = eliminarArticulo;
+            _editarArticulo = editarArticulo;
+        }
+
+        [Admin]
+        public IActionResult Index(string mensaje)
+        {
+            ViewBag.Mensaje = mensaje;
+            return View(_obtenerTodos.Ejecutar());
+        }
+        [Admin]
+        public IActionResult Create()
+        {
+            return View();
+        }
+        [Admin]
+        [HttpPost]
+        public IActionResult Create(Articulo UnArticulo)
+        {
+            try
+            {
+                if(UnArticulo == null)
+                {
+                    throw new ArgumentException("Los valores enviados son incorrectos");
+                }
+                UnArticulo.Validar();
+                _altaArticulo.Ejecutar(UnArticulo);
+                return RedirectToAction("Index", new {mensaje = "Se dio de alta el articulo"});
+            }
+            catch (DominioExcpetion e)
+            {
+                ViewBag.mensaje = e.Message;
+            }
+            catch (RepositorioException e)
+            {
+                ViewBag.mensaje = e.Message;
+            }
+            catch (Exception )
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View("Create");
+        }
+        [Admin]
+        public IActionResult Delete(int id)
+        {
+            try
+            {
+                _eliminarArticulo.Ejecutar(id);
+                ViewBag.mensaje = "Eliminado con exito.";
+            }
+            catch
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return RedirectToAction("Index", new { mensaje = ViewBag.mensaje } );
+        }
+        [Admin]
+        public IActionResult Edit(int id)
+        {
+            try
+            {
+                Articulo art = _obtenerArticulo.Ejecutar(id);
+                return View(art);
+            }
+            catch (DominioExcpetion ex)
+            {
+                return RedirectToAction("Index", new { mensaje = ex.Message });
+            }
+            catch (RepositorioException ex)
+            {
+                return RedirectToAction("Index", new { mensaje = ex.Message });
+            }
+            catch (Exception)
+            {
+                return RedirectToAction("Index", new { mensaje = "Hubo un error, contactese con el administrador." });
+            }
+        }
+        [Admin]
+        [HttpPost]
+        public IActionResult Edit(int id, Articulo art)
+        {
+            try
+            {
+                _editarArticulo.Ejecutar(id, art);
+                return RedirectToAction("Index", new { mensaje = "Articulo modificado con exito." });
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (RepositorioException ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (Exception)
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View(art);
+        }
+    }
+}
+
+***********************************
+Archivo: ClienteController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Controllers\ClienteController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaDeNegocio.Dtos;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.CodeAnalysis.Elfie.Serialization;
+using WebApp.Filter;
+
+namespace WebApp.Controllers
+{
+    public class ClienteController : Controller
+    {
+        IObtenerTodos<ClienteDto> _obtenerClientesDto;
+        IObtenerFiltroString<ClienteDto> _obtenerClientesXRazonSocial;
+        IObtenerFiltroInt<ClienteDto> _obtenerClientesXMonto;
+
+        public ClienteController(IObtenerTodos<ClienteDto> obtenerTodos,
+            IObtenerFiltroString<ClienteDto> obtenerClientesXRazonSocial,
+            IObtenerFiltroInt<ClienteDto> obtenerClientesXMonto)
+        {
+            _obtenerClientesDto = obtenerTodos;
+            _obtenerClientesXRazonSocial = obtenerClientesXRazonSocial;
+            _obtenerClientesXMonto = obtenerClientesXMonto;
+        }
+        [Admin]
+        public IActionResult Index(string mensaje)
+        {
+            ViewBag.mensaje= mensaje;
+            return View(_obtenerClientesDto.Ejecutar());
+        }
+
+        [Admin]
+        public IActionResult FiltroXRazonSocial(string filtro)
+        {
+            try
+            {
+            if (filtro != null)
+            {
+               ViewBag.filtroRazonSocial= filtro;
+               return View("Index", _obtenerClientesXRazonSocial.Ejecutar(filtro));
+            }
+            return RedirectToAction("Index");
+
+            }
+            catch (RepositorioException ex)
+            {
+                return RedirectToAction("Index", new { mensaje = ex.Message });
+            }
+            catch (Exception)
+            {
+                return RedirectToAction("Index", new { mensaje = "Hubo un error, contacte al administrador." });
+            }
+        }
+        [Admin] 
+        public IActionResult FiltroXMonto(int filtro)
+        {
+            try
+            {
+                if (filtro >= 0)
+                {
+                    ViewBag.filtroXMonto = filtro;
+                }
+                return View("Index", _obtenerClientesXMonto.Ejecutar(filtro));
+
+            }
+            catch (RepositorioException ex)
+            {
+                return RedirectToAction("Index", new { mensaje = ex.Message });
+            }
+            catch (Exception)
+            {
+                return RedirectToAction("Index", new { mensaje = "Hubo un error, contacte al administrador." });
+            }
+        }
+    }
+}
+
+***********************************
+Archivo: IndexController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Controllers\IndexController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaAplicacion.Administradores;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+using WebApp.Filter;
+
+namespace WebApp.Controllers
+{
+    public class IndexController : Controller
+    {
+
+        ILogin<Usuario> _login;
+        //IAlta<Usuario> _altaUsuario; //1er ejecucion necesario debido al hash
+
+        public IndexController(ILogin<Usuario> login
+                               //, IAlta<Usuario> altaUsuario //1er ejecucion hasta obtener Hash e incorporarlo en la migracion
+                               )
+        {
+            _login = login;
+            // _altaUsuario = altaUsuario;//1er ejecucion
+            // _altaUsuario.Ejecutar(new Administrador(true, "fran@mail.com", "Asd123!", "fran", "kell")); //1er ejecucion
+
+        }
+        [Admin]
+        public IActionResult Index()
+        {
+            return View();
+        }
+        [Admin]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return View("Login");
+        }
+        public IActionResult Login()
+        {
+            return View();
+        }
+        [HttpPost]
+        public IActionResult Login(string Email, string Password)
+        {
+
+            try
+            {
+                Usuario unU = _login.Ejecutar(Email, Password);
+
+                if (unU is Administrador)
+                {
+                    HttpContext.Session.SetString("rol", "Admin");
+                    Administrador administrador = unU as Administrador;
+                    if (administrador.ModificaUsuario)
+                    {
+                        HttpContext.Session.SetString("super", "True");
+                    }
+
+                    HttpContext.Session.SetString("Nombre", unU.Nombre);
+
+                    return Redirect("/Index/Index");
+                }
+            }
+            catch (LoginException e)
+            {
+                ViewBag.mensaje = e.Message;
+                
+            }
+            catch (Exception)
+            {
+                ViewBag.mensaje = "Hubo un inconveniente, contactese con el administrador.";
+            }
+            
+            return View("Login");
+        }
+        
+    }
+}
+
+***********************************
+Archivo: PedidoController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Controllers\PedidoController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaAplicacion.Articulos;
+using LogicaDeNegocio.Dtos;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.Excepciones;
+using LogicaDeNegocio.IntefacesServicios;
+using LogicaDeNegocio.InterfacesRepositorio;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApplicationParts;
+using Microsoft.CodeAnalysis.FlowAnalysis.DataFlow;
+using System.ComponentModel;
+using WebApp.Filter;
+
+namespace WebApp.Controllers
+{
+    public class PedidoController : Controller
+    {
+        IObtenerTodos<PedidoDto> _obtenerPedidos;
+        IObtener<PedidoDto> _obtenerPedido;
+        IObtenerTodos<Articulo> _obtenerArticulos;
+        IObtener<Articulo> _obtenerArticulo;
+        IAlta<PedidoDto> _altaPedido;
+        IObtenerTodos<ClienteDto> _obtenerClientes;
+        IObtener<ClienteDto> _obtenerCliente;
+        IObtenerAanular<PedidoDto> _obtenerPedidosAanular;
+        IAnularPedido _anularPedido;
+        static List<ArticuloPedido> compras = new List<ArticuloPedido>();
+        public PedidoController(IObtenerTodos<PedidoDto> pedidos, 
+                                IObtener<PedidoDto> obtenerPedido,
+                                IObtenerTodos<Articulo> obtenerArticulos,
+                                IObtener<Articulo> obtenerArticulo,
+                                IAlta<PedidoDto> altaPedido,
+                                IObtenerTodos<ClienteDto> obtenerClientes,
+                                IObtener<ClienteDto> obtenerCliente,
+                                IObtenerAanular<PedidoDto> obtenerPedidosAanular,
+                                IAnularPedido anularPedido)
+        {
+            _obtenerPedidos = pedidos;
+            _obtenerPedido = obtenerPedido;
+            _obtenerArticulos = obtenerArticulos;
+            _obtenerArticulo = obtenerArticulo;
+            _altaPedido = altaPedido;
+            _obtenerClientes = obtenerClientes;
+            _obtenerCliente = obtenerCliente;
+            _obtenerPedidosAanular = obtenerPedidosAanular;
+            _anularPedido = anularPedido;
+        }
+        [Admin]
+        public IActionResult Index(string mensaje, string color)
+        {
+            ViewBag.Mensaje = mensaje;
+            ViewBag.Color = color;
+            return View(_obtenerPedidos.Ejecutar());
+        }
+        [Admin]
+        public IActionResult ElegirArticulos(string mensaje, string color) 
+        {
+            ViewBag.Mensaje= mensaje;
+            ViewBag.Color = color;
+            ViewBag.Lista=compras;
+            return View(_obtenerArticulos.Ejecutar());
+        }
+        [Admin]
+        public IActionResult Agregar(int id, int cantidad)
+        {
+            try
+            {
+                for (int i = 0; i < compras.Count; i++)
+                {
+                    if (compras[i].Articulo.Id == id)
+                    {
+                        return RedirectToAction("ElegirArticulos", new { mensaje = "No puede elegir mas de 1 vez el mismo articulo" , color = "alert alert-danger"});
+                    }
+                }
+                Articulo art = _obtenerArticulo.Ejecutar(id);
+                ArticuloPedido item = new ArticuloPedido(art,cantidad);
+                item.Validar();
+                compras.Add(item);
+                ViewBag.Mensaje = "Articulo agregado con exito";
+                ViewBag.Color = "alert alert-success";
+                ViewBag.Lista = compras;
+                return View("ElegirArticulos", _obtenerArticulos.Ejecutar());
+
+            }catch(RepositorioException ex)
+            {
+                return RedirectToAction("ElegirArticulos", new { mensaje = ex.Message, color = "alert alert-danger" });
+            }
+            catch (DominioExcpetion ex)
+            {
+                return RedirectToAction("ElegirArticulos", new { mensaje = ex.Message, color = "alert alert-danger" });
+            }
+            catch (Exception)
+            {
+                return RedirectToAction("ElegirArticulos", new { mensaje = "Hubo un error, contactese con el administrador", color = "alert alert-danger" });
+            }
+        }
+        [Admin]
+        public IActionResult Cancel()
+        {
+            compras.Clear();
+            return RedirectToAction("Index", new {mensaje = "Pedido cancelado", color = "alert alert-danger" });
+        }
+        [Admin]
+        public IActionResult DeleteLinea(int idArt, int cantidad)
+        {
+            try
+            {
+                for (int i = 0; i < compras.Count ; i++)
+                {
+                    ArticuloPedido compra = compras[i];
+                    if (compra.Articulo.Id == idArt && compra.Cantidad==cantidad)
+                    {
+                        compras.Remove(compras[i]);
+                        ViewBag.Mensaje = "Se quito el articulo de la lista";
+                        ViewBag.Color = "alert alert-succes";
+                        i = compras.Count;
+                    }
+                }
+                ViewBag.Lista = compras;
+                return View("ElegirArticulos", _obtenerArticulos.Ejecutar());
+            }
+            catch(Exception)
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return RedirectToAction("Index", new { mensaje = ViewBag.mensaje, color = "alert alert-danger" });
+        }
+        [Admin]
+        [HttpGet]
+        public IActionResult Create(string mensaje, string color)
+        {
+            if (compras.Count == 0)
+            {
+                return RedirectToAction("ElegirArticulos", new { mensaje = "No tiene articulos seleccionados", color = "alert alert-danger" });
+            }
+            ViewBag.mensaje = mensaje;
+            ViewBag.color = color;
+            ViewBag.clientes=_obtenerClientes.Ejecutar();
+            return View();
+        }
+        [Admin]
+        [HttpPost]
+        public IActionResult Create(PedidoDto pedidoDto)
+        {
+
+            try { 
+            PedidoDto nuevoPedidoDto = new PedidoDto(0,pedidoDto.fechaDeEntrega,DateTime.Now,pedidoDto.precio, pedidoDto.recargo,pedidoDto.iva,pedidoDto.idCliente,pedidoDto.nombreCliente,compras,false,pedidoDto.esExpress);
+            _altaPedido.Ejecutar(nuevoPedidoDto);
+            compras.Clear();
+            return RedirectToAction("Index", new { mensaje = "Pedido agregado con exito", color = "alert alert-success" });
+            }
+            catch (RepositorioException ex)
+            {
+                return RedirectToAction("Create", new { mensaje = ex.Message, color = "alert alert-danger" });
+            }
+            catch (DominioExcpetion ex)
+            {
+                return RedirectToAction("Create", new { mensaje = ex.Message, color = "alert alert-danger" });
+            }
+            catch (Exception)
+            {
+                return RedirectToAction("Create", new { mensaje = "Hubo un error, contactese con el administrador", color = "alert alert-danger" });
+            }
+        }
+
+        [Admin]
+        public IActionResult PedidosAanular()
+        {
+            return View();
+        }
+        [Admin]
+        [HttpPost]
+        public IActionResult PedidosAanular(DateTime fechaPedido)
+        {
+            try
+            {
+            return View(_obtenerPedidosAanular.Ejecutar(fechaPedido));
+
+            }
+            catch (RepositorioException ex)
+            {
+                ViewBag.mensaje = ex.Message;
+                ViewBag.color = "alert alert-danger";
+                return View();
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.mensaje = ex.Message;
+                ViewBag.color = "alert alert-danger";
+                return View();
+            }
+            catch (Exception)
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador";
+                ViewBag.color = "alert alert-danger";
+                return View();
+            }
+        }
+        [Admin]
+        public IActionResult Anular(int id)
+        {
+            try
+            {
+            _anularPedido.Ejecutar(id);
+            
+            ViewBag.mensaje = "Pedido anulado con exito";
+            ViewBag.color = "alert alert-success";
+            return View("PedidosAanular");
+            }
+            catch (RepositorioException ex)
+            {
+                ViewBag.mensaje = ex.Message;
+                ViewBag.color = "alert alert-danger";
+                return View("PedidosAanular");
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.mensaje = ex.Message;
+                ViewBag.color = "alert alert-danger";
+                return View("PedidosAanular");
+            }
+            catch (Exception)
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador";
+                ViewBag.color = "alert alert-danger";
+                return View("PedidosAanular");
+            }
+        }
+
+    }
+}
+
+***********************************
+Archivo: UsuarioController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Controllers\UsuarioController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.Excepciones;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+using WebApp.Filter;
+using WebApp.Models;
+
+namespace WebApp.Controllers
+{
+    public class UsuarioController : Controller
+    {
+        IAlta<Usuario> _altaUsuario;
+        IEditar<Usuario> _editarUsuario;
+        IEliminar<Usuario> _eliminarUsuario;
+        IObtener<Usuario> _obtenerUsuario;
+        IObtenerTodos<Usuario> _obtenerUsuarios;
+
+
+        IObtener<Administrador> _obtenerAdministrador;
+        IEditar<Administrador> _editarAdministrador;
+        IObtenerTodos<Administrador> _obtenerAdministradores;
+
+        public UsuarioController(IAlta<Usuario> altaUsuario,
+            IEditar<Usuario> editarUsuario,
+            IEliminar<Usuario> eliminarUsuario,
+            IObtener<Usuario> obtenerUsuario,
+            IObtenerTodos<Usuario> obtenerUsuarios,
+
+
+            IObtener<Administrador> obtenerAdministrador,
+            IEditar<Administrador> editarAdministrador,
+            IObtenerTodos<Administrador> obtenerAdministradores)
+        {
+            _altaUsuario = altaUsuario;
+            _editarUsuario = editarUsuario;
+            _eliminarUsuario = eliminarUsuario;
+            _obtenerUsuario = obtenerUsuario;
+            _obtenerUsuarios = obtenerUsuarios;
+
+
+            _obtenerAdministrador = obtenerAdministrador;
+            _editarAdministrador = editarAdministrador;
+            _obtenerAdministradores = obtenerAdministradores;
+
+        }
+        [Admin]
+        public IActionResult AdminIndex(string mensaje)
+        {
+            ViewBag.Mensaje = mensaje;
+
+            return View(_obtenerAdministradores.Ejecutar());
+        }
+        public IActionResult AdminCreate()
+        {
+            return View();
+        }
+        [Admin]
+        [HttpPost]
+        public IActionResult AdminCreate(Administrador administrador)
+        {
+            try
+            {
+                administrador.Validar();
+                _altaUsuario.Ejecutar(administrador);
+                return RedirectToAction("AdminIndex", new { mensaje = "Admin creado con exito." });
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (RepositorioException ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (Exception)
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View(administrador);
+        }
+        [Admin]
+        public IActionResult AdminDelete(int id)
+        {
+            try
+            {
+                Administrador admin = _obtenerAdministrador.Ejecutar(id);
+                return View(admin);
+            }
+            catch (DominioExcpetion ex)
+            {
+                return RedirectToAction("AdminIndex", new { mensaje = ex.Message });
+            }
+            catch (RepositorioException ex)
+            {
+                return RedirectToAction("AdminIndex", new { mensaje = ex.Message });
+            }
+            catch (Exception)
+            {
+            return RedirectToAction("AdminIndex", new { mensaje = "Hubo un error, contactese con el administrador." } );
+            }
+
+        }
+        [Admin]
+        [HttpPost]
+        public IActionResult AdminDelete(Administrador admin)
+        {
+            try
+            {
+                _eliminarUsuario.Ejecutar(admin.Id);
+                return RedirectToAction("AdminIndex", new {mensaje = "Administrador eliminado con exito."});
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (RepositorioException ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (Exception)
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View(admin);
+        }
+        [AdminAutorizado]
+        public IActionResult AdminEdit(int id)
+        {
+            try
+            {
+                Administrador admin = _obtenerAdministrador.Ejecutar(id);
+                return View(admin);
+            }
+            catch (DominioExcpetion ex)
+            {
+                return RedirectToAction("AdminIndex", new { mensaje = ex.Message });
+            }
+            catch (RepositorioException ex)
+            {
+                return RedirectToAction("AdminIndex", new { mensaje = ex.Message });
+            }
+            catch (Exception)
+            {
+                return RedirectToAction("AdminIndex", new { mensaje = "Hubo un error, contactese con el administrador." });
+            }
+        }
+        [AdminAutorizado]
+        [HttpPost]
+        public IActionResult AdminEdit(int id, Administrador admin)
+        {
+            try
+            {
+                _editarAdministrador.Ejecutar(id, admin);
+                return RedirectToAction("AdminIndex", new { mensaje = "Administrador modificado con exito." });
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (RepositorioException ex)
+            {
+                ViewBag.mensaje = ex.Message;
+            }
+            catch (Exception)
+            {
+                ViewBag.mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View(admin);
+        }
+    }
+}
+
+***********************************
+Archivo: Admin.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Filter\Admin.cs
+***********************************
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApp.Filter
+{
+    public class Admin : Attribute, IAuthorizationFilter
+    {
+        public void OnAuthorization(AuthorizationFilterContext context)
+        {
+
+            if (context.HttpContext.Session.GetString("rol") != "Admin")
+            {
+                context.HttpContext.Session.Clear();
+                context.Result = new RedirectResult("/Index/Login");
+            }
+
+
+        }
+    }
+}
+
+***********************************
+Archivo: AdminAutorizado.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Filter\AdminAutorizado.cs
+***********************************
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebApp.Filter
+{
+    public class AdminAutorizado : Attribute, IAuthorizationFilter
+    {
+        public void OnAuthorization(AuthorizationFilterContext context)
+        {
+
+            if (context.HttpContext.Session.GetString("super") != "True")
+            {
+                context.HttpContext.Session.Clear();
+                context.Result = new RedirectResult("/Index/Login");
+            }
+
+
+        }
+    }
+}
+
+***********************************
+Archivo: ErrorViewModel.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Models\ErrorViewModel.cs
+***********************************
+namespace WebApp.Models
+{
+    public class ErrorViewModel
+    {
+        public string? RequestId { get; set; }
+
+        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    }
+}
+
+***********************************
+Archivo: VMAdministrador.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebApp\Models\VMAdministrador.cs
+***********************************
+namespace WebApp.Models
+{
+    public class VMAdministrador
+    {
+        public int Id { get; set; }
+        public string Email { get; set; }
+        public string Password { get; set; }
+        public string Nombre { get; set; }
+        public string Apellido { get; set; }
+        public bool ModificaUsuario { get; set; }
+
+    }
+}
+
+***********************************
+Archivo: HomeController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Controllers\HomeController.cs
+***********************************
+using LogicaAccesoDatos.Excepciones;
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.Excepciones;
+using LogicaDeNegocio.Excepciones.MovimientoDeStock;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+using System.Globalization;
+using WebAppli.Filter;
+using WebAppli.Models;
+
+namespace WebAppli.Controllers
+{
+    public class HomeController : Controller
+    {
+        private IObtenerTodosPaginado<MovimientoDeStock> _obtenerMovimientos;
+        private ICantidadTotal<MovimientoDeStock> _cantidadMovimientos;
+        private IAlta<MovimientoDeStockDto> _alta;
+        private IObtenerDosFiltros<MovimientoDeStock> _dosFiltros;
+        private ICantidadDosFiltros<MovimientoDeStock> _cantidadDosFiltros;
+        private ICantidadPorFecha<Articulo> _cantidadPorFecha;
+        private IObtenerPorFecha<Articulo> _obtenerPorFecha;
+        private IObtenerResumen _obtenerResumen;
+     //   private IObtenerTodos<TipoDeMovimiento> _obtenerTipos;
+        private IObtenerTodos<Articulo> _obtenerArticulos;
+        private static IEnumerable<Articulo> articulos;
+        private static IEnumerable<TipoDeMovimiento> tipos;
+
+        private int pageSize = 0;
+        private int totalItems = 0;
+        public HomeController(IObtenerTodosPaginado<MovimientoDeStock> obtenerMovimientos,
+                                            ICantidadTotal<MovimientoDeStock> cantidadMovimientos,
+                                            IAlta<MovimientoDeStockDto> altaMovimiento,
+                                            IObtenerDosFiltros<MovimientoDeStock> dosFiltros,
+                                            ICantidadDosFiltros<MovimientoDeStock> cantidadDosFiltros,
+                                            ICantidadPorFecha<Articulo> cantidadPorFecha,
+                                            IObtenerPorFecha<Articulo> obtenerPorFecha, 
+                                            IObtenerResumen obtenerResumen,
+                                            IObtenerTodos<TipoDeMovimiento> obtenerTipos)
+        {
+            pageSize = ParametrosGenerales.pageSize;
+            _obtenerMovimientos = obtenerMovimientos;
+            _cantidadMovimientos = cantidadMovimientos;
+            _alta = altaMovimiento;
+            _dosFiltros = dosFiltros;
+            _cantidadDosFiltros = cantidadDosFiltros;
+            _cantidadPorFecha = cantidadPorFecha;
+            _obtenerPorFecha = obtenerPorFecha;
+            _obtenerResumen = obtenerResumen;
+          //  _obtenerTipos = obtenerTipos;
+        }
+
+        [AutEncargado]
+        public IActionResult Index(int pageNumber)
+        {
+            try
+            {
+                totalItems = _cantidadMovimientos.Ejecutar();
+                IEnumerable<MovimientoDeStock> _movimientos = _obtenerMovimientos.Ejecutar(pageNumber);
+                PageMovimientosViewModel page = new PageMovimientosViewModel();
+                page.Items = _movimientos;
+                page.TotalItems = totalItems;
+                page.PageNumber = pageNumber;
+                page.TotalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                if (totalItems == 0)
+                {
+                    throw new DominioExcpetion("No hay datos para mostrar");
+                }
+                return View(page);
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (EmptyException ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (Exception)
+            {
+                ViewBag.Mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View();
+        }
+
+        [AutEncargado]
+        public IActionResult Create()
+        {
+
+            string mail = HttpContext.Session.GetString("mail");
+            ViewBag.Mail = mail;
+            return View();
+        }
+
+        [AutEncargado]
+        [HttpPost]
+        public IActionResult Create(MovimientoDeStockDto unMovimiento)
+        {
+            try
+            {
+                if (unMovimiento == null)
+                {
+                    throw new ArgumentException("Los valores enviados son incorrectos");
+                }
+                if (unMovimiento.articuloId == null)
+                {
+                    throw new ArticuloDeMovimientoInvalidoException();
+                }
+                if (unMovimiento.ejecutorEmail == null)
+                {
+                    throw new RolUsuarioInvalidoException();
+                }
+                if (unMovimiento.cantidad == null || unMovimiento.cantidad > ParametrosGenerales.cantMaxPorMovimiento || unMovimiento.cantidad <= 0)
+                {
+                    throw new CantidadInvalidaException();
+                }
+                _alta.Ejecutar(unMovimiento);
+                TempData["Mensaje"] = "Movimiento ingresado con éxito.";
+                return RedirectToAction("Index");
+            }
+            catch (DominioExcpetion ex)
+            {
+                string mail = HttpContext.Session.GetString("mail");
+                ViewBag.Mail = mail;
+                ViewBag.Mensaje = ex.Message;
+                return View();
+            }
+            catch (EmptyException ex)
+            {
+                string mail = HttpContext.Session.GetString("mail");
+                ViewBag.Mail = mail;
+                ViewBag.Mensaje = ex.Message;
+                return View();
+            }
+            catch (Exception)
+            {
+                string mail = HttpContext.Session.GetString("mail");
+                ViewBag.Mail = mail;
+                ViewBag.Mensaje = "Hubo un error, contactese con el administrador.";
+                return View();
+            }
+        }
+
+        [AutEncargado]
+        public IActionResult FiltroXArtTipoPag(int idArticulo = 0, int idTipo = 0, int pagina = 0)
+        {
+            try
+            {
+                if(idArticulo == 0 && idTipo == 0)
+                {
+                    throw new ArgumentException("Seleccione los campos de su interes");
+                }
+                totalItems = _cantidadDosFiltros.Ejecutar(idArticulo, idTipo);
+                IEnumerable<MovimientoDeStock> _movimientos = _dosFiltros.Ejecutar(idArticulo, idTipo, pagina);
+                PageMovimientosViewModel page = new PageMovimientosViewModel();
+                page.Items = _movimientos;
+                if (_movimientos.Count() == 0)
+                {
+                    throw new EmptyException();
+                }
+                page.TotalItems = totalItems;
+                page.PageNumber = pagina;
+                page.TotalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                ViewBag.idArt=idArticulo;
+                ViewBag.idTipo=idTipo;
+                if (totalItems == 0)
+                {
+                    throw new DominioExcpetion("No hay datos para mostrar");
+                }
+                return View(page);
+            }
+            catch(ArgumentException ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (EmptyException)
+            {
+                ViewBag.Mensaje = "No hay datos para mostrar";
+            }
+            catch (Exception)
+            {
+                ViewBag.Mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View();
+        }
+
+        [AutEncargado]
+        public IActionResult FiltroXFecha(string desde, string hasta, int pagina = 0)
+        {
+            try
+            {
+                DateTime d = DateTime.Now;
+                DateTime h = DateTime.Now;
+                if (desde != null)
+                {
+                    var okd = DateTime.TryParse(desde, out d);
+                }
+                if (hasta != null)
+                {
+                    var okd = DateTime.TryParse(hasta, out h);
+
+                }
+                totalItems = _cantidadPorFecha.Ejecutar(d, h);
+                IEnumerable<Articulo> _articulos = _obtenerPorFecha.Ejecutar(d, h, pagina);
+                PageArticulosViewModel page = new PageArticulosViewModel();
+                page.Items = _articulos;
+                page.TotalItems = totalItems;
+                page.PageNumber = pagina;
+                page.TotalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+                ViewBag.desdestr = d.ToString("yyyy-MM-ddTHH:mm");
+                ViewBag.hastastr = h.ToString("yyyy-MM-ddTHH:mm");
+                if (totalItems == 0)
+                {
+                    throw new DominioExcpetion("No hay datos para mostrar");
+                }
+                return View(page);
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (EmptyException ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (Exception)
+            {
+                ViewBag.Mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View();
+        }
+
+        [AutEncargado]
+        public IActionResult Resumen()
+        {
+            try
+            {
+                return View(_obtenerResumen.Ejecutar());
+            }
+            catch (DominioExcpetion ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (EmptyException ex)
+            {
+                ViewBag.Mensaje = ex.Message;
+            }
+            catch (Exception)
+            {
+                ViewBag.Mensaje = "Hubo un error, contactese con el administrador.";
+            }
+            return View();
+        }
+    }
+}
+***********************************
+Archivo: TipoDeMovimientoController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Controllers\TipoDeMovimientoController.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebAppli.Controllers
+{
+    //este controlador, no lo pide la letra
+    public class TipoDeMovimientoController : Controller
+    {
+        private IObtenerTodos<TipoDeMovimiento> _obtenerTipos;
+
+        public TipoDeMovimientoController(IObtenerTodos<TipoDeMovimiento> obtenerTipos) 
+        {
+            _obtenerTipos = obtenerTipos;
+        }
+        public IActionResult Index(string mensaje)
+        {
+            ViewBag.Mensaje = mensaje;
+            return View(_obtenerTipos.Ejecutar());
+        }
+    }
+}
+
+***********************************
+Archivo: UsuarioController.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Controllers\UsuarioController.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+using LogicaDeNegocio.IntefacesServicios;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebAppli.Controllers
+{
+    public class UsuarioController : Controller
+    {
+        private IObtenerToken _obtenerToken;
+        private ILogin<Usuario> _login;
+
+        public UsuarioController(IObtenerToken obtenerToken, ILogin<Usuario> login)
+        {
+            _login = login;
+            _obtenerToken = obtenerToken;
+        }
+        public IActionResult Index()
+        {
+            return View();
+        }
+        public IActionResult Bienvenida()
+        {
+            return View();
+        }
+
+        public IActionResult Login(string email, string password)
+        {
+            try
+            {
+               Usuario usu = _login.Ejecutar(email, password);
+               HttpContext.Session.SetString("rol", usu.Discriminator);
+               HttpContext.Session.SetString("mail", usu.Email);
+               var token = _obtenerToken.Ejecutar(usu);
+               HttpContext.Session.SetString("token", token);
+            }
+            catch (Exception ex) {
+                ViewBag.Mensaje=ex.Message;
+                return View("Index");
+            }
+
+            return RedirectToAction("Bienvenida", "Usuario");
+        }
+
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return View("Index");
+        }
+    }
+}
+
+***********************************
+Archivo: AutEncargado.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Filter\AutEncargado.cs
+***********************************
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc;
+
+namespace WebAppli.Filter
+{
+    public class AutEncargado : Attribute, IAuthorizationFilter
+    {
+        public void OnAuthorization(AuthorizationFilterContext context)
+        {
+
+            if (context.HttpContext.Session.GetString("rol") != "Encargado")
+            {
+                context.HttpContext.Session.Clear();
+                context.Result = new RedirectResult("/Usuario/Index");
+            }
+
+
+        }
+    }
+}
+
+***********************************
+Archivo: ErrorViewModel.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Models\ErrorViewModel.cs
+***********************************
+namespace WebAppli.Models
+{
+    public class ErrorViewModel
+    {
+        public string? RequestId { get; set; }
+
+        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    }
+}
+
+***********************************
+Archivo: PageArticulosViewModel.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Models\PageArticulosViewModel.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+
+namespace WebAppli.Models
+{
+    public class PageArticulosViewModel
+    {
+        public IEnumerable<Articulo> Items { get; set; }
+        public int PageNumber { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+    }
+}
+
+***********************************
+Archivo: PageMovimientosViewModel.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Models\PageMovimientosViewModel.cs
+***********************************
+using LogicaDeNegocio.Entidades;
+
+namespace WebAppli.Models
+{
+    public class PageMovimientosViewModel
+    {
+        public IEnumerable<MovimientoDeStock> Items { get; set; }
+        public int PageNumber { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalPages { get; set; }
+    }
+}
+
+***********************************
+Archivo: TokenServices.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\WebAppli\Services\TokenServices.cs
+***********************************
+using Microsoft.AspNetCore.Http;
+
+
+
+public class TokenService : ITokenService
+{
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public TokenService(IHttpContextAccessor httpContextAccessor)
+    {
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    public string GetToken()
+    {
+        return _httpContextAccessor.HttpContext?.Session.GetString("token");
+    }
+}
+***********************************
+Archivo: ArticuloInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Articulo\ArticuloInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Articulo
+{
+    public class ArticuloInvalidoException : DominioExcpetion
+    {
+        public ArticuloInvalidoException() { }
+        public ArticuloInvalidoException(string message) : base(message) { }
+    }
+}
+
+***********************************
+Archivo: CodigoInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Articulo\CodigoInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Articulo
+{
+    public class CodigoInvalidoException : ArticuloInvalidoException
+    {
+        public CodigoInvalidoException() : base("El codico no tiene el rango solicitado (13)") { }
+    }
+}
+
+***********************************
+Archivo: DescripcionInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Articulo\DescripcionInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Articulo
+{
+    public class DescripcionInvalidoException : ArticuloInvalidoException
+    {
+        public DescripcionInvalidoException() : base("La Descripcion no cumple con el largo (5)") { }
+    }
+}
+
+***********************************
+Archivo: NombreNoVacioException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Articulo\NombreNoVacioException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Articulo
+{
+    public class NombreNoVacioException : ArticuloInvalidoException
+    {
+        public NombreNoVacioException(): base("El nombre no tiene que estar vacio") { }
+    }
+}
+
+***********************************
+Archivo: PrecioDeVentaInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Articulo\PrecioDeVentaInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Articulo
+{
+    public class PrecioDeVentaInvalidoException:ArticuloInvalidoException
+    {
+        public PrecioDeVentaInvalidoException() : base("El precio debe ser un valor positivo.") { }
+    }
+}
+
+***********************************
+Archivo: StockInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Articulo\StockInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Articulo
+{
+    public class StockInvalidoException:ArticuloInvalidoException
+    {
+        public StockInvalidoException():base("El stock debe ser mayor a 0.") { }
+    }
+}
+
+***********************************
+Archivo: ArticuloDeMovimientoInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\MovimientoDeStock\ArticuloDeMovimientoInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.MovimientoDeStock
+{
+    public class ArticuloDeMovimientoInvalidoException:MovimientoDeStockInvalidoException
+    {
+        public ArticuloDeMovimientoInvalidoException() : base("El movimiento no se hizo sobre un articulo valido") { }
+
+    }
+}
+
+***********************************
+Archivo: CantidadInvalidaException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\MovimientoDeStock\CantidadInvalidaException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.MovimientoDeStock
+{
+    public class CantidadInvalidaException:MovimientoDeStockInvalidoException
+    {
+        public CantidadInvalidaException() : base("La cantidad debe estar entre 1 y el tope") { }
+    }
+}
+
+***********************************
+Archivo: MovimientoDeStockInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\MovimientoDeStock\MovimientoDeStockInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.MovimientoDeStock
+{
+    public class MovimientoDeStockInvalidoException:DominioExcpetion
+    {
+            public MovimientoDeStockInvalidoException() { }
+            public MovimientoDeStockInvalidoException(string message) : base("Movimiento invalido") { }
+
+    }
+}
+
+***********************************
+Archivo: RolUsuarioInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\MovimientoDeStock\RolUsuarioInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.MovimientoDeStock
+{
+    public class RolUsuarioInvalidoException:MovimientoDeStockInvalidoException
+    {
+        public RolUsuarioInvalidoException() : base("El ejecutor debe ser un encargado") { }
+
+    }
+}
+
+***********************************
+Archivo: TipoDeMovimientoInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\TipoDeMovimiento\TipoDeMovimientoInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.TipoDeMovimiento
+{
+    public class TipoDeMovimientoInvalidoException:DominioExcpetion
+    {
+            public TipoDeMovimientoInvalidoException() { }
+            public TipoDeMovimientoInvalidoException(string message) : base("Tipo de movimiento invalido, asegurese de completar todos los campos") { }
+
+    }
+}
+
+***********************************
+Archivo: AdministradorInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Usuario\AdministradorInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Usuario
+{
+    internal class AdministradorInvalidoException:UsuarioInvalidoException
+    {
+        public AdministradorInvalidoException() : base("El valor recibido de Administrador, es inválido.") { }
+    }
+}
+
+***********************************
+Archivo: ApellidoInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Usuario\ApellidoInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Usuario
+{
+    public class ApellidoInvalidoException:UsuarioInvalidoException
+    {
+        public ApellidoInvalidoException() : base("El valor recibido de Apellido, es invalido.") { }
+    }
+}
+
+***********************************
+Archivo: EmailInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Usuario\EmailInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Usuario
+{
+    internal class EmailInvalidoException:UsuarioInvalidoException
+    {
+        public EmailInvalidoException() : base("El valor recibido de Email, es invalido.") { }
+    }
+}
+
+***********************************
+Archivo: NombreInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Usuario\NombreInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Usuario
+{
+    public class NombreInvalidoException:UsuarioInvalidoException
+    {
+        public NombreInvalidoException() : base("El valor recibido de Nombre, es invalido.") { }
+    }
+}
+
+***********************************
+Archivo: PasswordInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Usuario\PasswordInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Usuario
+{
+    public class PasswordInvalidoException:UsuarioInvalidoException
+    {
+        public PasswordInvalidoException() : base("El password recibido no cumple con las exigencias minimas de seguridad.") { }
+    }
+}
+
+***********************************
+Archivo: UsuarioInvalidoException.cs
+Carpeta: C:\Users\pc\Desktop\Libreria - cliente\Libreria\Excepciones\Usuario\UsuarioInvalidoException.cs
+***********************************
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace LogicaDeNegocio.Excepciones.Usuario
+{
+    public class UsuarioInvalidoException:DominioExcpetion
+    {
+        public UsuarioInvalidoException() { }
+        public UsuarioInvalidoException(string message) : base(message) { }
+    }
+}

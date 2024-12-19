@@ -1,0 +1,82 @@
+﻿@model IEnumerable<LogicaDeNegocio.Dtos.PedidoDto>
+
+@{
+    ViewData["Title"] = "Pedidos";
+}
+
+<h1 class="text-center text-decoration-underline">Lista de pedidos</h1>
+@if (@ViewBag.mensaje != null)
+{
+    <div class="@ViewBag.color" role="alert">
+        <p>@ViewBag.mensaje</p>
+    </div>
+}
+
+@if (@Model != null && Model.Count()==0)
+{
+    <div class="alert alert-danger" role="alert">
+        <p>Aun no existen pedidos en el sistema</p>
+    </div>
+}
+@if (Model != null)
+{
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                Id
+            </th>
+            <th>
+                Es express?
+            </th>
+            <th>
+                Fecha de realizado
+            </th>
+            <th>
+                Fecha de entrega
+            </th>
+            <th>
+                Costo total
+            </th>
+            <th>
+                Nombre del cliente
+            </th>
+            <th>
+                Anulado?
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.id)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.esExpress)
+            </td>
+            <td>
+                    @item.fechaPedidoCorta()
+            </td>
+            <td>
+                    @item.fechaDeEntregaCorta()
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.precio)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.nombreCliente)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.anulado)
+            </td>
+        </tr>
+        }
+    </tbody>
+</table>
+}
+<p>
+    <a asp-action="ElegirArticulos" class="btn btn-success">Crear/Continuar pedido </a>
+    <a asp-action="PedidosAanular" class="btn btn-danger">Buscar un pedido para anular </a>
+
+</p>
